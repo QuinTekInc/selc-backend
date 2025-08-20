@@ -1,0 +1,58 @@
+
+from django.urls import path
+from . import views
+
+urlpatterns = [
+
+    #todo: superuser stuff.
+    path('all-users/', views.getListOfUsers),
+    path('create-user/', views.createUser),
+    path('su-update-user/', views.superuser_UpdateUser),
+
+
+    #todo: for user authentication
+    path('login/', views.loginAdmin),
+    path('logout/', views.logoutAdmin),
+    path('update-account-info/', views.updateAccountInfo),
+
+    #todo: dashboard urls
+    path('general-current-stats/', views.generalCurrentStatistics),
+    path('lecturers-ratings-rank/', views.getLecturersRatings),
+    path('courses-ratings-rank/', views.getCourseRatings),
+
+
+    #todo: general setting urls
+    path('get-general-settings/',views.getGeneralSetting),
+    path('update-general-settings/', views.updateSetting),
+
+    
+    path('departments/', views.getDepartments),
+    path('lecturers/', views.getLecturers),
+    path('lecturer-info/<str:username>', views.getLecturerInformation),
+    path('course-info/<str:course_code>', views.getCourseInformation),
+
+    #todo: ClassCourse evaluation information
+    path('class-course-eval-summary/<int:cc_id>', views.getClassCourseEvalSummary),
+    path('eval-question-category-remark/<int:cc_id>', views.getCourseEvalCategoryRemarks),
+    path('eval-suggestions/<int:cc_id>', views.getEvaluationSuggestions),
+    
+
+    path('questions-and-categories/', views.getQuestionsAndCategories),
+
+    #todo: requstionnaire categories
+    path('add-category/', views.addCategory),
+    path('update-category/<int:category_id>/', views.updateCategory),
+    path('delete-category/<int:category_id>/', views.deleteCategory),
+
+
+    #todo: questionnaires and the questionnaire
+    path('add-questionnaire/', views.addQuestionnaire),
+    path('delete-questionnaire/', views.updateQuestionnaire),
+    path('update-questionnaire/', views.updateQuestionnaire),
+
+
+    path('add-course/', views.addCourse),
+
+
+    path('courses/', views.getCourses)
+]

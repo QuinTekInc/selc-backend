@@ -1,0 +1,2 @@
+
+#for the manual analytics, the data will either to be converted to xml or csv so that it can be used in excel spreadsheet.
