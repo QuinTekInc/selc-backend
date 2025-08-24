@@ -361,6 +361,7 @@ def getQuestionsAndCategories(request):
 
 
 
+
 @api_view(['POST'])
 def addCategory(request):
 
@@ -539,9 +540,24 @@ def getEvaluationSuggestions(request, cc_id):
 
     class_course = ClassCourse.objects.get(id=cc_id)
 
-    suggestions = EvaluationSuggestion.objects.filter(class_course=class_course)
+    lecturer_ratings = LecturerRating.objects.filter(class_course=class_course)
 
-    return Response([eval_suggestion.suggestion for eval_suggestion in suggestions])
+
+    suggestions_map: list[dict] = []
+
+    for l_rating in lecturer_ratings:
+        student = l_rating.student
+        suggestion = EvaluationSuggestion.objects.filter(student=student, class_course=class_course)
+
+        _suggestion = ''
+        if suggestion.exists():
+            _suggestion = suggestion.first().suggestion
+        
+        suggestions_map.append({'rating': l_rating.rating, 'suggestion': _suggestion})
+
+    
+
+    return Response(suggestions_map)
 
 
 

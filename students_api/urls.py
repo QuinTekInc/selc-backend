@@ -5,7 +5,7 @@ from django.urls import path
 urlpatterns = [
     path('login/', views.loginStudent),
     path('logout/', views.logoutStudent),
-    path('check-enable-evaluations', views.checkEnableEvaluations),
+    path('check-enable-evaluations/', views.checkEnableEvaluations),
     path('get-registered-courses/', views.getRegisteredCourses),
     path('get-questions/', views.getQuestions),
     path('submit-eval/', views.submitEvaluationData),

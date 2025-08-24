@@ -39,7 +39,7 @@ class GeneralSetting(models.Model):
     enable_evaluations = models.BooleanField(default=False)
 
     def __repr__(self):
-        return f'semester: {self.current_semester}', f'disable: {self.enable_evaluations}'
+        return f'semester: {self.current_semester}', f'accept_evaluations: {self.enable_evaluations}'
     
     def __str__(self):
         return str(self.__repr__())
@@ -318,6 +318,8 @@ class ClassCourse(models.Model):
 
     def getEvalDetails(self) -> list[dict]:
 
+        from admin_api import utils
+
         #get the questions
         questions = Questionnaire.objects.all()
 
@@ -325,6 +327,8 @@ class ClassCourse(models.Model):
 
 
         for question in questions:
+
+            #get the evaluations for the question at the current iteration
             evaluations = Evaluation.objects.filter(question=question, class_course=self)
 
             question_eval_dict = {
@@ -335,15 +339,34 @@ class ClassCourse(models.Model):
                 }
             }
 
+
+            total_evaluations = len(evaluations)
+            max_answer_score = 5 * len(evaluations)
+            total_answer_score = 0
+
             #build a set for the possible answers  for the question at the current iteration
-            possible_question_answers: set = set([evaluation.answer for evaluation in evaluations])
+            possible_question_answers: set[str] = set([evaluation.answer for evaluation in evaluations])
 
             for possible_answer in possible_question_answers: 
                 answer_count = len(
                     list(filter(lambda evaluation: evaluation.answer==possible_answer, evaluations)))
-                
                 question_eval_dict['answer_summary'][possible_answer] = answer_count
+
+                total_answer_score += utils.ANSWER_SCORE_DICT[possible_answer.lower()]
+
                 pass
+
+            
+            #calculate the average answer score.
+            percentage_score = (total_answer_score / max_answer_score) * 100
+            average_answer_score = total_answer_score / total_evaluations
+
+
+
+            #update the dictionary
+            question_eval_dict['percentage_score'] = percentage_score
+            question_eval_dict['average_score'] = average_answer_score
+            
 
             eval_list.append(question_eval_dict)
 
@@ -357,34 +380,48 @@ class ClassCourse(models.Model):
 
         from admin_api import utils
 
+        #get all the questionnaire categories from the database
         categories = QuestionCategory.objects.all()
 
+        #list to store the category evaluations
         evals_category_list = []
 
         for category in categories: 
 
+            #filter out the questionnaires under the category at the current iteration
             cat_questions = Questionnaire.objects.filter(category=category)
 
-            category_evaluations = []
+            category_question_evaluations: list[Evaluation] = []
 
+            #iterate through the filterd questions
             for question in cat_questions:
+                #get the evaluation answers for the question at the current iteration
                 evaluations = Evaluation.objects.filter(question=question, class_course=self)
                 
                 if len(evaluations) == 0:
                     continue
             
-                category_evaluations.extend(list(evaluations))
+                category_question_evaluations.extend(list(evaluations))
 
             
-            total_evaluations = len(category_evaluations)
-            eval_answers_total_score = sum([utils.ANSWER_SCORE_DICT[evaluation.answer] for evaluation in category_evaluations])
+            total_evaluations = len(category_question_evaluations)
 
+            #extract the answers from the list of evaluations and sum them up
+            eval_answers_total_score = sum([utils.ANSWER_SCORE_DICT[evaluation.answer.lower()] for evaluation in category_question_evaluations])
+            
+            #find the average score of the evaluations ath current category
             cat_average_score = (eval_answers_total_score / total_evaluations) if total_evaluations != 0 else 0
 
+            #todo: calculate the percentage score
+            max_answers_score = total_evaluations * 5 #first finding the maximum score
+            percentage_score = (eval_answers_total_score / max_answers_score) * 100 #value here is in percentages
+            
+            #append to the overall list.
             evals_category_list.append({
                 'category': category.cat_name,
+                'percentage_score': percentage_score,
                 'average_score': cat_average_score,
-                'remark': utils.categoryRemarkBasedScore(cat_average_score)
+                'remark': utils.categoryScoreBasedRemark(cat_average_score)
             })
                 
 
@@ -576,6 +613,7 @@ class EvaluationSuggestion(models.Model):
             cc_count += EvaluationSuggestion.objects.filter(class_course=class_course).count()
 
         return cc_count
+    
     
 
 

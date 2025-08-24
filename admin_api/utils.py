@@ -10,32 +10,33 @@ from rest_framework.response import Response
 ANSWER_SCORE_DICT = {
 
     #for performance
-    'Excellent': 5,
-    'Very Good': 4,
-    'Good': 3,
-    'Average': 2,
+    'excellent': 5,
+    'very good': 4,
+    'good': 3,
+    'average': 2,
     'bad': 1,
+    'poor': 1,
 
     #for time
-    'Always': 5,
-    'Very Often': 4,
-    'Sometimes': 3,
-    'Rarely': 2,
-    'Never': 1,
+    'always': 5,
+    'very often': 4,
+    'sometimes': 3,
+    'rarely': 2,
+    'bever': 1,
 
     #for yes no questions
-    'Yes': 5,
-    'No': 1,
+    'yes': 5,
+    'no': 1,
 
 
     #for when the user gave No answer
-    'No Answer': 0
+    'no answer': 0
 }
 
 
 
 
-def categoryRemarkBasedScore(score: float):
+def categoryScoreBasedRemark(score: float):
 
     if score >= 0 and score <= 1.99:
         return 'Poor'
@@ -165,8 +166,8 @@ def buildParamLecturerMap(lecturer: Lecturer, class_courses) -> dict:
 
 
 def buildCourseRateMap(course: Course, class_courses: list[ClassCourse]) -> dict:
-    course_rate_map: dict[str: object] = course.toMap()
 
+    course_rate_map: dict[str: object] = course.toMap()
 
     total_sum = 0
     number_of_students = 0
