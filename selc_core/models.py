@@ -366,6 +366,7 @@ class ClassCourse(models.Model):
             #update the dictionary
             question_eval_dict['percentage_score'] = percentage_score
             question_eval_dict['average_score'] = average_answer_score
+            question_eval_dict['remark'] = utils.categoryScoreBasedRemark(average_answer_score)
             
 
             eval_list.append(question_eval_dict)
@@ -682,5 +683,7 @@ class EvaluationStatus(models.Model):
         return str(self.__repr__())
     
     pass
+
+
 
 
