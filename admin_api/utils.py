@@ -195,13 +195,15 @@ def buildCourseRateMap(course: Course, class_courses: list[ClassCourse]) -> dict
 
     course_performance_score = 0
 
-    if number_of_performance != 0:
+    if number_of_performance > 0:
         course_performance_score = total_sum / number_of_performance
 
     course_rate_map['parameter_rating'] = course_performance_score
     course_rate_map['number_of_students'] = number_of_students
 
     return course_rate_map
+
+
 
 
 def groupQuestionAnswerSummary(class_courses) -> dict:

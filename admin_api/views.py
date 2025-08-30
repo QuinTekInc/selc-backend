@@ -148,6 +148,8 @@ def superuser_UpdateUser(request,):
 # Create your views here.
 # when an admin want's to login
 @api_view(['POST'])
+@authentication_classes([])
+@permission_classes([AllowAny])
 def loginAdmin(request):
 
     username = request.data.get('username')
@@ -155,6 +157,8 @@ def loginAdmin(request):
 
     if not username or not password:
         return Response({'message': 'Username and password are required.'}, status=HTTP_401_UNAUTHORIZED)
+
+    print('This place has been passed')
     
 
     user = None
