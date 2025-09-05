@@ -280,6 +280,7 @@ class ClassCourse(models.Model):
         return ratings_sum / len(ratings)
 
 
+
     #the mean score for the course.
     def computeGrandMeanScore(self) -> float:
 
@@ -308,12 +309,46 @@ class ClassCourse(models.Model):
         return total_performance_score / total_evaluations
     
 
+    
+    def getLecturerRatingDetails(self) -> list[dict]:
+
+        this_class_course_ratings = LecturerRating.objects.filter(class_course=self)
+        
+        ratings_map_list: list[dict] = []
+
+        for i in range(5, 0, -1):
+
+            i_ratings = filter(lambda lr: lr.rating == i, this_class_course_ratings)
+
+            rating_count = len(list(i_ratings))
+
+            percentage = 0
+
+            if rating_count > 0:
+                percentage = (rating_count/len(this_class_course_ratings)) * 100
+
+
+            ratings_map = {
+                'rating': i,
+                'rating_count': rating_count,
+                'percentage': percentage
+            }
+
+            ratings_map_list.append(ratings_map)
+            
+            pass
+        
+        return ratings_map_list
+    
+
+
 
     def getEvalSuggestions(self) -> list[dict]:
         suggestions = EvaluationSuggestion.objects.filter(class_course=self)
 
         return [suggestion.toMap() for suggestion in suggestions]
     
+
 
 
     def getEvalDetails(self) -> list[dict]:
@@ -358,8 +393,12 @@ class ClassCourse(models.Model):
 
             
             #calculate the average answer score.
-            percentage_score = (total_answer_score / max_answer_score) * 100
-            average_answer_score = total_answer_score / total_evaluations
+            percentage_score = 0
+            average_answer_score = 0
+
+            if max_answer_score > 0:
+                percentage_score = (total_answer_score / max_answer_score) * 100
+                average_answer_score = total_answer_score / total_evaluations
 
 
 
@@ -374,10 +413,11 @@ class ClassCourse(models.Model):
             pass 
 
         return eval_list
+    
 
 
 
-    def getEvalQuestionCategoryRemarks(self) -> list[dict]:
+    def getEvalQuestionCategoryRemarks(self, include_questions = False) -> list[dict]:
 
         from admin_api import utils
 
@@ -413,17 +453,29 @@ class ClassCourse(models.Model):
             #find the average score of the evaluations ath current category
             cat_average_score = (eval_answers_total_score / total_evaluations) if total_evaluations != 0 else 0
 
+            max_answers_score = 0
+            percentage_score = 0
+
             #todo: calculate the percentage score
-            max_answers_score = total_evaluations * 5 #first finding the maximum score
-            percentage_score = (eval_answers_total_score / max_answers_score) * 100 #value here is in percentages
-            
-            #append to the overall list.
-            evals_category_list.append({
+            if total_evaluations > 0:
+                max_answers_score = total_evaluations * 5 #first finding the maximum score
+                percentage_score = (eval_answers_total_score / max_answers_score) * 100 #value here is in percentages
+
+
+            category_map = {
                 'category': category.cat_name,
                 'percentage_score': percentage_score,
                 'average_score': cat_average_score,
                 'remark': utils.categoryScoreBasedRemark(cat_average_score)
-            })
+            }
+
+
+            if include_questions:
+                category_map['questions'] = [question.toMap() for question in cat_questions]
+
+            
+            #append to the overall list.
+            evals_category_list.append(category_map)
                 
 
         return evals_category_list

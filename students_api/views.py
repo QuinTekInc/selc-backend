@@ -62,7 +62,6 @@ def loginStudent(request):
 def logoutStudent(request):
     user: User = request.user
     logout(request)
-
     return Response({'message': f'Student, {user.username}, logged out.'})
 
 
