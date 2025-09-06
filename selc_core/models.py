@@ -341,9 +341,29 @@ class ClassCourse(models.Model):
 
 
 
-    def getEvalSuggestions(self) -> list[dict]:
+    def getEvalSuggestions(self) -> dict:
+        
+        from ml_model.vader_predict import VaderSentimentAnalyzer
+
+        vsa = VaderSentimentAnalyzer()
+
         suggestions = EvaluationSuggestion.objects.filter(class_course=self)
-        return [suggestion.toMap() for suggestion in suggestions]
+
+        sentiments = vsa.predict_multiple([suggestion.suggestion for suggestion in suggestions])
+
+        sentiment_map = {
+            'positive': len(list(filter(lambda sentiment: sentiment.lower() == 'positive', sentiments))),
+            'neutral': len(list(filter(lambda sentiment: sentiment.lower() == 'neutral', sentiments))),
+            'negative': len(list(filter(lambda sentiment: sentiment.lower() == 'negative', sentiments))),
+        }
+
+        suggestions_map = [suggestion.toMap() for suggestion in suggestions]
+
+
+        return {
+            'sentiment_summary': sentiment_map,
+            'suggetions': suggestions_map
+        }
     
 
 
