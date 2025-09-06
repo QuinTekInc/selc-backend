@@ -3,7 +3,6 @@ from django.db import models
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 
-
 import datetime
 
 # Create your models here.
@@ -29,7 +28,6 @@ class Notification(models.Model):
             'message': self.message,
             'read': self.read
         }
-
 
 
 
@@ -345,7 +343,6 @@ class ClassCourse(models.Model):
 
     def getEvalSuggestions(self) -> list[dict]:
         suggestions = EvaluationSuggestion.objects.filter(class_course=self)
-
         return [suggestion.toMap() for suggestion in suggestions]
     
 
@@ -516,7 +513,6 @@ class ClassCourse(models.Model):
 
 
 
-
 #A student registered class......Corresponding to a ClassCourse
 class StudentClass(models.Model):
     id = models.AutoField(primary_key=True)
@@ -643,6 +639,12 @@ class Evaluation(models.Model):
 
 
 
+class SentimentChoices(models.TextChoices):
+    POSITIVE = ('POSITIVE', 'positive')
+    NEUTRAL = ('NEUTRAL', 'netural')
+    NEGATIVE = ('NEGATIVE', 'negative')
+
+
 
 class EvaluationSuggestion(models.Model):
 
@@ -650,7 +652,7 @@ class EvaluationSuggestion(models.Model):
     student: Student = models.ForeignKey(Student, related_name='s_student', on_delete=models.CASCADE)
     class_course: ClassCourse = models.ForeignKey(ClassCourse, related_name='s_class_course', on_delete=models.CASCADE)
     suggestion = models.TextField(default='')
-
+    sentiment = models.CharField(max_length=20, default='neutral', choices=SentimentChoices.choices) 
 
 
     @staticmethod  

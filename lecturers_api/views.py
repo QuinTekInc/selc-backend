@@ -8,8 +8,10 @@ from rest_framework.status import *
 
 from django.contrib.auth.models import User
 from django.contrib.auth import login, logout
-from selc_core.models import Lecturer, Department, ClassCourse
+from selc_core.models import Lecturer, ClassCourse
 from selc_core.models import GeneralSetting
+
+import joblib
 
 
 # Create your views here.
@@ -36,6 +38,8 @@ def loginLecturer(request):
     if not user.is_active:
         return Response({'message': 'Your account has been marked as inactive. Contact the administrator for support'}, status=HTTP_401_UNAUTHORIZED)
     
+
+    login(request, user)
 
     lecturer = Lecturer.objects.get(user=user)    
 
@@ -93,10 +97,11 @@ def getCourseQuestionnaireEvaluation(request, cc_id):
 
     class_course = ClassCourse.objects.get(id=cc_id)
 
-
     questionnaire_evaluationMap = class_course.getEvalDetails()
 
     return Response(questionnaire_evaluationMap)
+
+
 
 
 @api_view(['GET'])
@@ -120,4 +125,23 @@ def getCourseCategoryEvaluation(request, cc_id):
 def getLecturerRatingSummaryForCourse(request, cc_id):
     class_course = ClassCourse.objects.get(id=cc_id)
     return Response(class_course.getLecturerRatingDetails())
+
+
+
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def getEvalSuggestionSentimentAnalysis(request, cc_id:int):
+
+    class_course = ClassCourse.objects.get(id=cc_id)
+
+    suggestion = class_course.getEvalSuggestions()
+
+    sentiment_model = joblib.load('/selc_core/ml-model/sentiment-analysis-model.pkl')
+
+    cleaned_suggestions = []
+
+    prediction_list = (sentiment_model.predict(cleaned_suggestions))
+
+    return Response()
 
