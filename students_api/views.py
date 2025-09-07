@@ -141,14 +141,6 @@ def submitEvaluationData(request):
     student_class = StudentClass.objects.get(student=student, class_course=class_course)
 
 
-    # try:
-    #     eval_suggestion = EvaluationSuggestion.objects.get(class_course=class_course, student=student)
-    #     eval_suggestion.suggestion = request_data['suggestion']
-    # except EvaluationSuggestion.DoesNotExist:
-    #     eval_suggestion = EvaluationSuggestion.objects.create(class_course=class_course, student=student,
-    #                                                           suggestion=request_data['suggestion'])
-
-
     eval_suggestion, _ = EvaluationSuggestion.objects.get_or_create(class_course=class_course, student=student,)
     eval_suggestion.suggestion = request_data['suggestion']
     #predict the sentiment and save it.
@@ -167,15 +159,6 @@ def submitEvaluationData(request):
         answer = answer_dict['answer']
 
         question = Questionnaire.objects.get(q_id=question_id)
-
-        # evaluation = Evaluation.objects.get(question_id=question, cc_id=classCourse, student_id=student)
-
-        # try:
-        #     evaluation = Evaluation.objects.get(student=student, question=question, class_course=class_course)
-        #     evaluation.answer = answer
-        # except Evaluation.DoesNotExist:
-        #     evaluation = Evaluation.objects.create(student=student, question=question, class_course=class_course,
-        #                                            answer=answer)
         
 
         evaluation, _ = Evaluation.objects.get_or_create(student=student, question=question, class_course=class_course)
