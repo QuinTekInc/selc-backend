@@ -341,28 +341,38 @@ class ClassCourse(models.Model):
 
 
 
-    def getEvalSuggestions(self) -> dict:
-        
-        from ml_model.vader_predict import VaderSentimentAnalyzer
-
-        vsa = VaderSentimentAnalyzer()
+    def getEvalSuggestions(self) -> dict[str: list]:
 
         suggestions = EvaluationSuggestion.objects.filter(class_course=self)
 
-        sentiments = vsa.predict_multiple([suggestion.suggestion for suggestion in suggestions])
+        sentiments = [suggestion.sentiment for suggestion in suggestions]
 
-        sentiment_map = {
-            'positive': len(list(filter(lambda sentiment: sentiment.lower() == 'positive', sentiments))),
-            'neutral': len(list(filter(lambda sentiment: sentiment.lower() == 'neutral', sentiments))),
-            'negative': len(list(filter(lambda sentiment: sentiment.lower() == 'negative', sentiments))),
-        }
+        sentiment_summary_list = []
+
+
+        for sentiment in ('positive', 'neutral', 'negative'):
+            filtered_sentiments = filter(lambda s: s.lower() == sentiment, sentiments)
+            sentiment_count = len(list(filtered_sentiments))
+
+            sentiment_percent = 0
+
+            if sentiment_count != 0:
+                sentiment_percent = (sentiment_count / len(sentiments)) * 100
+
+            sentiment_map = {
+                'sentiment': sentiment, 
+                'sentiment_count': sentiment_count,
+                'sentiment_percent': sentiment_percent
+            }
+
+            sentiment_summary_list.append(sentiment_map)
 
         suggestions_map = [suggestion.toMap() for suggestion in suggestions]
 
 
         return {
-            'sentiment_summary': sentiment_map,
-            'suggetions': suggestions_map
+            'sentiment_summary': sentiment_summary_list,
+            'suggestions': suggestions_map
         }
     
 
@@ -502,9 +512,11 @@ class ClassCourse(models.Model):
 
     def __repr__(self):
         return self.id, self.course.course_code, self.lecturer.user.username
-    
+
+
     def __str__(self):
         return str(self.__repr__())
+
 
 
     def toMap(self) -> dict:
@@ -577,7 +589,6 @@ class StudentClass(models.Model):
         }
 
     pass
-
 
 
 

@@ -10,6 +10,9 @@ from selc_core.models import *
 from rest_framework.status import *
 from rest_framework.permissions import AllowAny
 
+
+from selc_core.ml_model.vader_predict import VaderSentimentAnalyzer
+
 # Create your views here.
 
 #all the data returned from this function is requested from the IT directorate's server.
@@ -148,6 +151,9 @@ def submitEvaluationData(request):
 
     eval_suggestion, _ = EvaluationSuggestion.objects.get_or_create(class_course=class_course, student=student,)
     eval_suggestion.suggestion = request_data['suggestion']
+    #predict the sentiment and save it.
+    eval_suggestion.sentiment = VaderSentimentAnalyzer().predict(request_data['suggestion'])
+
 
     lecturer_rating, _ = LecturerRating.objects.get_or_create(student=student, class_course=class_course,)
     lecturer_rating.rating = request_data['rating']
@@ -200,6 +206,7 @@ def getEvaluationForCourse(request, cc_id):
     evalAnswers = Evaluation.objects.filter(student=student, class_course=class_course)
 
     #form a questionnaire_category -> list_of_answers here.
+    
 
     answer_cat_dict: dict[str: list] = {}
 

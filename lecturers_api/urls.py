@@ -10,5 +10,6 @@ urlpatterns = [
     path('get-courses/', views.getLecturerCourses),
     path('get-course-eval/<int:cc_id>', views.getCourseQuestionnaireEvaluation),
     path('get-course-cat-eval/<int:cc_id>', views.getCourseCategoryEvaluation),
-    path('get-course-lrating-eval/<int:cc_id>', views.getLecturerRatingSummaryForCourse)
+    path('get-course-lrating-eval/<int:cc_id>', views.getLecturerRatingSummaryForCourse),
+    path('get-course-eval-suggestions/<int:cc_id>', views.getEvaluationSuggestions)
 ]

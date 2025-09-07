@@ -128,20 +128,15 @@ def getLecturerRatingSummaryForCourse(request, cc_id):
 
 
 
+
 @api_view(['GET'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
-def getEvalSuggestionSentimentAnalysis(request, cc_id:int):
-
+def getEvaluationSuggestions(request, cc_id):
     class_course = ClassCourse.objects.get(id=cc_id)
+    return Response(class_course.getEvalSuggestions())
 
-    suggestion = class_course.getEvalSuggestions()
 
-    sentiment_model = joblib.load('/selc_core/ml-model/sentiment-analysis-model.pkl')
 
-    cleaned_suggestions = []
 
-    prediction_list = (sentiment_model.predict(cleaned_suggestions))
-
-    return Response()
 
