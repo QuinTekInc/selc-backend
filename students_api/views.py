@@ -27,7 +27,6 @@ def loginStudent(request):
     password = request.data.get('password')
 
 
-
     user_filter = User.objects.filter(username=username)
 
     if not user_filter.exists():
