@@ -33,8 +33,8 @@ CORS_ALLOW_ALL_ORIGINS = False  # Use with caution (only for development)
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5000",
+    #"http:127.0.0.1:5000",
     "http://127.0.0.1",
-    #"https://your-frontend.com"
 ]
 
 CORS_ALLOWED_HEADERS = list(default_headers) + [
