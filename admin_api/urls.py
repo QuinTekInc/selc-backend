@@ -29,12 +29,14 @@ urlpatterns = [
     path('departments/', views.getDepartments),
     path('lecturers/', views.getLecturers),
     path('lecturer-info/<str:username>', views.getLecturerInformation),
+    path('overall-lrating-summary/<str:username>', views.getOverallLecturerRatingSummary),
     path('course-info/<str:course_code>', views.getCourseInformation),
 
     #todo: ClassCourse evaluation information
     path('class-course-eval-summary/<int:cc_id>', views.getClassCourseEvalSummary),
     path('eval-question-category-remark/<int:cc_id>', views.getCourseEvalCategoryRemarks),
     path('eval-suggestions/<int:cc_id>', views.getEvaluationSuggestions),
+    path('eval-lrating-summary/<int:cc_id>', views.getEvalLecturerRatingSummary),
     
 
     path('questions-and-categories/', views.getQuestionsAndCategories),

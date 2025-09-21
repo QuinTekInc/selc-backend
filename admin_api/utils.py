@@ -57,6 +57,7 @@ def categoryScoreBasedRemark(score: float):
 
 
 
+
 def createSuperUser(username, password, email, first_name='', last_name=''):
 
     user = User.objects.create_superuser(
@@ -75,7 +76,7 @@ def createSuperUser(username, password, email, first_name='', last_name=''):
 
 
 
-
+#rename this function to 'buildUserAccountDict'
 def createUserAccountDict(user: User, auth_token = None):
     user_map = {
         'username': user.username,
@@ -149,6 +150,7 @@ def parameterRatingAndStudentCount(lecturer: Lecturer, class_courses: list[Class
 
 
 
+#todo: rename this function to 'buildParamLecturerRatingMap'
 def buildParamLecturerMap(lecturer: Lecturer, class_courses) -> dict:
 
     lecturer_param_map: dict[str: object] = lecturer.toMap()
@@ -165,40 +167,39 @@ def buildParamLecturerMap(lecturer: Lecturer, class_courses) -> dict:
 
 
 
+#todo: rename this function to 'buildParamCourseScoreMap'
 def buildCourseRateMap(course: Course, class_courses: list[ClassCourse]) -> dict:
 
-    course_rate_map: dict[str: object] = course.toMap()
+    course_rate_map: dict[str, object] = course.toMap()
 
     total_sum = 0
     number_of_students = 0
     #total number of evaluations of questions with the answer type of performance
-    number_of_performance = 0
+    number_of_evaluations = 0
 
     for cc in class_courses:
 
-        student_classes = StudentClass.objects.filter(class_course=cc)
-        number_of_students += len(student_classes)
+        number_of_students += StudentClass.objects.filter(class_course=cc).count()
 
         #get the evaluations of the class courses based on the questionnaires with performance answer types.
         evaluations = Evaluation.objects.filter(class_course=cc)
 
-        #filter the evaluations to extract the questionnaires with the performance answer types.
-        evaluations = list(filter(lambda _evaluation: _evaluation.question.answer_type == 'performance', evaluations))
-        number_of_performance += len(evaluations)
+        number_of_evaluations += evaluations.count()
 
-        for evaluation in evaluations:
-            total_sum += ANSWER_SCORE_DICT.get(evaluation.answer, 0)
-            pass
+        total_sum += sum([
+            ANSWER_SCORE_DICT.get(evaluation.answer.lower(), 0)
+            for evaluation in evaluations
+        ])
 
         pass
 
 
-    course_performance_score = 0
+    parameter_score = 0
 
-    if number_of_performance > 0:
-        course_performance_score = total_sum / number_of_performance
+    if number_of_evaluations > 0:
+        parameter_score = total_sum / number_of_evaluations
 
-    course_rate_map['parameter_rating'] = course_performance_score
+    course_rate_map['parameter_rating'] = parameter_score
     course_rate_map['number_of_students'] = number_of_students
 
     return course_rate_map
@@ -224,7 +225,7 @@ def groupQuestionAnswerSummary(class_courses) -> dict:
         }
     """
 
-    eval_answer_map: dict[int: dict[str: int]] = {}
+    eval_answer_map: dict[int, dict[str, int]] = {}
 
     for question in questions:
 
