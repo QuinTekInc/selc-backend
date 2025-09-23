@@ -215,7 +215,7 @@ def updateAccountInfo(request):
         is_correct_password: bool = user.check_password(request_data['old_password'])
 
         if not is_correct_password:
-            return Response({'message': 'The password you entered is incorrect.'}, status=HTTP_406_NOT_ACCEPTABLE)
+            return Response({'message': 'The password you entered is incorrect. Please try again'}, status=HTTP_406_NOT_ACCEPTABLE)
         
         user.set_password(request_data['new_password'])
         pass
