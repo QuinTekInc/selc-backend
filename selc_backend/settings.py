@@ -35,6 +35,9 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5000",
     #"http:127.0.0.1:5000",
     "http://127.0.0.1",
+    "https://selc-uenr.vercel.app",
+    "https://selc-lecturer.vercel.app",
+    "https://selc-admin.vercel.app",
 ]
 
 CORS_ALLOWED_HEADERS = list(default_headers) + [
