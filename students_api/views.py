@@ -50,7 +50,7 @@ def loginStudent(request):
     login(request, user)
 
     student = Student.objects.get(user=user)
-    student_info_dict = student.toMap()
+    student_info_dict = student.toMap(is_student_login=True)
 
 
     return Response(student_info_dict)
