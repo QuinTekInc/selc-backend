@@ -167,7 +167,7 @@ class Lecturer(models.Model):
     def __str__(self):
         return str(self.__repr__())
 
-
+        
     def getOverallRatingSummary(self) -> dict:
         #get everycourse the lecturer has taught
         class_courses = ClassCourse.objects.filter(lecturer=self)
@@ -203,12 +203,37 @@ class Lecturer(models.Model):
         return ratings_map_list
 
 
+    #use this data to build a "trend line chart" in the frontend
+    def getYearlyAverageRatingSummary(self):
+        #get all the class_courses of the lecturer
+        class_courses = ClassCourse.objects.filter(lecturer=self)
+
+        years = set([class_course.year for class_course in class_courses])
+
+        yearly_rating_dict_list: list[str, float] = []
+
+        for year in years:
+            year_class_courses = class_courses.filter(year=year)
+            #get the lecturer ratings based on year_class_courses
+            lecturer_ratings = LecturerRating.objects.filter(class_course__in=year_class_courses)
+            total_rating = sum([l_rating.rating for l_rating in lecturer_ratings])
+
+            average_rating = 0
+
+            if lecturer_ratings.exists():
+                average_rating = total_rating / lecturer_ratings.count()
+
+            yearly_rating_dict_list.append({'year': year, 'average_rating': average_rating})
+
+        return yearly_rating_dict_list
+
+
 
     def computeLecturerOverallAverageRating(self) -> float:
 
         class_courses = ClassCourse.objects.filter(lecturer=self)
 
-        if len(class_courses) == 0:
+        if not class_courses.exists():
             return 0 
         
         total_ratings = 0

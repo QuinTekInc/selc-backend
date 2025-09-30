@@ -30,6 +30,7 @@ urlpatterns = [
     path('lecturers/', views.getLecturers),
     path('lecturer-info/<str:username>', views.getLecturerInformation),
     path('overall-lrating-summary/<str:username>', views.getOverallLecturerRatingSummary),
+    path('yearly-average-lrating-summary/<str:username>', views.getYearlyLecturerRatingSummary),
     path('course-info/<str:course_code>', views.getCourseInformation),
 
     #todo: ClassCourse evaluation information

@@ -342,6 +342,17 @@ def getOverallLecturerRatingSummary(request, username):
     return Response(lecturer.getOverallRatingSummary())
 
 
+@api_view(['GET'])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
+def getYearlyLecturerRatingSummary(request, username):
+
+    user = User.objects.get(username=username)
+    lecturer = Lecturer.objects.get(user=user)
+
+    return Response(lecturer.getYearlyAverageRatingSummary())
+
+
 
 
 
