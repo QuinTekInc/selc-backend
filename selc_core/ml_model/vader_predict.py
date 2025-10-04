@@ -1,5 +1,6 @@
 
 
+import nltk
 from nltk import download as nltk_download
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
