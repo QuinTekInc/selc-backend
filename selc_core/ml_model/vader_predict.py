@@ -17,7 +17,7 @@ class VaderSentimentAnalyzer:
             #DOWNLOAD_DIR = 'selc_core/ml-model/nltk_download'
 
             # Add the directory to nltk search path (before any lookup)
-            nltk.data.path.append(DOWNLOAD_DIR)
+            #nltk.data.path.append(DOWNLOAD_DIR)
 
             # Check and download each resource only if not available
             required_packages = ["stopwords", "wordnet", "vader_lexicon"]
