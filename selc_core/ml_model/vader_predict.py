@@ -15,11 +15,23 @@ class VaderSentimentAnalyzer:
     def download_data(self):
         try:
             DOWNLOAD_DIR = '/selc_core/ml-model'
-            nltk_download("stopwords", download_dir=DOWNLOAD_DIR)
-            nltk_download("wordnet", download_dir=DOWNLOAD_DIR)
-            nltk_download("vader_lexicon", download_dir=DOWNLOAD_DIR)
-        except Exception:
-            #when the model fails to download 
+
+            # Add the directory to nltk search path (before any lookup)
+            nltk.data.path.append(DOWNLOAD_DIR)
+
+            # Check and download each resource only if not available
+            required_packages = ["stopwords", "wordnet", "vader_lexicon"]
+
+            for pkg in required_packages:
+                try:
+                    nltk.data.find(f"{pkg}")
+                    print(f"✓ NLTK resource '{pkg}' already exists.")
+                except LookupError:
+                    print(f"⤵ Downloading NLTK resource: {pkg}")
+                    nltk_download(pkg, download_dir=DOWNLOAD_DIR)
+
+        except Exception as e:
+            print("⚠ NLTK data setup failed:", e)
             pass
 
     def get_compound_score(self, score):
