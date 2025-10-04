@@ -183,7 +183,6 @@ dummy_departments_data = [
 
 #list of lecturers who taught us the second semester 2025
 #BSC Computer Science Level 200
-
 dummy_lecturers_data = [
 
     {
