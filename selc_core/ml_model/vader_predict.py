@@ -14,7 +14,7 @@ class VaderSentimentAnalyzer:
 
     def download_data(self):
         try:
-            DOWNLOAD_DIR = '/selc_core/ml-model'
+            #DOWNLOAD_DIR = 'selc_core/ml-model/nltk_download'
 
             # Add the directory to nltk search path (before any lookup)
             nltk.data.path.append(DOWNLOAD_DIR)
@@ -28,7 +28,8 @@ class VaderSentimentAnalyzer:
                     print(f"✓ NLTK resource '{pkg}' already exists.")
                 except LookupError:
                     print(f"⤵ Downloading NLTK resource: {pkg}")
-                    nltk_download(pkg, download_dir=DOWNLOAD_DIR)
+                    #nltk_download(pkg, download_dir=DOWNLOAD_DIR)
+                    nltk_download(pkg, quiet=True)
 
         except Exception as e:
             print("⚠ NLTK data setup failed:", e)
