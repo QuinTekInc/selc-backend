@@ -314,6 +314,98 @@ def getLecturers(request):
 
 
 
+@api_view(['GET'])
+def getEvaluationResponseRates(request):
+
+    #get the general setting
+    general_setting = GeneralSetting.objects.all().first()
+
+    #get all the class_courses for the semester and academic year
+    class_courses = ClassCourse.objects.filter(semester=general_setting.current_semester, year=datetime.datetime.now().year)
+
+    response_rate_map_list: list[dict] = []
+
+    for class_course in class_courses:
+        #get the registered students for the current class_course
+        total_students, evaluated_count = class_course.getNumberOfRegisteredStudents()
+        
+
+        response_rate = (total_students / evaluated_count) * 100 if total_students else 0
+
+        response_rate_map_list.append({
+            'lecturer': class_course.lecturer.getFullName(),
+            'course_code': class_course.course.course_code,
+            'course_title': class_course.course.title,
+            'number_of_students': total_students,
+            'number_of_evaluated': evaluated_count,
+            'response_rate': response_rate
+        })
+        pass
+
+    return Response(response_rate_map_list)
+
+
+@api_view(['GET'])
+def getLecturersRatingSummary(request):
+    general_setting = GeneralSettings.objects.all().first()
+
+    class_courses = ClassCourse.objects.filter(semester=general_setting.current_semester, year=datetime.datetime.now().year)
+
+    lecturers_rating_map_list: list[dict] = []
+
+    for class_course in class_courses:  
+        lecturers_rating_map_list.append({
+            'lecturer': class_course.lecturer.getFullName(),
+            'course_code': class_course.course_code,
+            'course_title': class_course.title, 
+            'average_rating': class_course.computeLecturerRatingForCourse(),
+        })
+        pass
+
+    return Response(lecturers_rating_map_list)
+
+
+
+
+
+@api_view(['GET'])
+def getCurrentClassCourses(request):
+    general_setting = GeneralSetting.objects.all().first()
+
+    class_courses = ClassCourse.objects.filter(semester=general_setting.current_semester, year=datetime.datetime.now().year)
+
+    class_courses_map_list: list[dict] = [class_course.toMap() for class_course in class_courses]
+    
+    return Response(class_courses_map_list)
+
+
+
+
+@api_view(['GET'])
+def getCurrentClassCourseCategorySentimentSummary(request):
+
+    general_setting = GeneralSetting.objects.all().first()
+
+    class_courses = ClassCourse.objects.filter(semester=general_setting.current_semester, year=datetime.datetime.now().year)
+
+    sentiments_map_list: list[dict] = []
+
+    for class_course in class_courses:
+
+        sentiment_summary = {
+            'lecturer': class_course.lecturer.getFullName(),
+            'course': class_course.course.toMap(),
+            'sentiment_summary': class_course.getEvalSuggestions()['sentiment_summary'] #todo: optimize this line of code later
+        }
+
+        sentiments_map_list.append(sentiment_summary)
+        pass
+
+    return Response(sentiments_map_list)
+
+
+
+
 
 @api_view(['GET'])
 def getLecturerInformation(request, username):
@@ -331,6 +423,7 @@ def getLecturerInformation(request, username):
 
 
 
+
 @api_view(['GET'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
@@ -340,6 +433,8 @@ def getOverallLecturerRatingSummary(request, username):
     lecturer = Lecturer.objects.get(user=user)
 
     return Response(lecturer.getOverallRatingSummary())
+
+
 
 
 @api_view(['GET'])

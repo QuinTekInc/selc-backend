@@ -554,6 +554,7 @@ class ClassCourse(models.Model):
                     continue
             
                 category_question_evaluations.extend(list(evaluations))
+                pass
 
             
             total_evaluations = len(category_question_evaluations)
@@ -564,7 +565,7 @@ class ClassCourse(models.Model):
             #find the average score of the evaluations ath current category
             cat_average_score = (eval_answers_total_score / total_evaluations) if total_evaluations != 0 else 0
 
-            max_answers_score = 0
+            #max_answers_score = 0
             percentage_score = 0
 
             #todo: calculate the percentage score

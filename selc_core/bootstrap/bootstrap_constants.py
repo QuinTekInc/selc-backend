@@ -59,7 +59,7 @@ questions_and_categories = [
     #todo: section for Mode of delivery or interactions
 
     {
-        'category': 'Mode Delivery / Interactions',
+        'category': 'Mode of Delivery / Interactions',
         'questions': [
             {
                 'question': 'Lecturer explains the material clearly in ways that easy to understand, offer alternative explanations or additional examples and clears up confusion',
