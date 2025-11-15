@@ -135,6 +135,7 @@ def parameterRatingAndStudentCount(lecturer: Lecturer, class_courses: list[Class
 
     for cc in class_courses:
         #get the ratings list from the evaluated class courses according to the parameters provided.
+        course_lecturer_ratings = LecturerRating.objects.filter(class_course=cc)
         ratings_list = [lr.rating for lr in LecturerRating.objects.filter(class_course=cc)]
         total_rating += sum(ratings_list)
         number_of_students += len(ratings_list)
@@ -155,11 +156,12 @@ def buildParamLecturerMap(lecturer: Lecturer, class_courses) -> dict:
 
     lecturer_param_map: dict[str: object] = lecturer.toMap()
 
-    lecturer_param_map['number_of_courses'] = len(class_courses)
+    #number of coures taught by the lecturer
+    lecturer_param_map['number_of_courses'] = len(class_courses) 
 
     param_rating_student_count = parameterRatingAndStudentCount(lecturer, class_courses)
 
-    lecturer_param_map['number_of_students'] = param_rating_student_count[0]
+    lecturer_param_map['number_of_students'] = param_rating_student_count[0] #this time its the number of students who rated this lecturer.
     lecturer_param_map['parameter_rating'] = param_rating_student_count[1]
 
     return lecturer_param_map
@@ -172,35 +174,40 @@ def buildCourseRateMap(course: Course, class_courses: list[ClassCourse]) -> dict
 
     course_rate_map: dict[str, object] = course.toMap()
 
-    total_sum = 0
+    number_of_lecturers = len(class_courses) #because each class_course has a lecturer (automatically :->)
+
+    total_cc_mean_score = 0
     number_of_students = 0
-    #total number of evaluations of questions with the answer type of performance
-    number_of_evaluations = 0
+    number_of_evaluated_students = 0
 
     for cc in class_courses:
 
-        number_of_students += StudentClass.objects.filter(class_course=cc).count()
 
-        #get the evaluations of the class courses based on the questionnaires with performance answer types.
-        evaluations = Evaluation.objects.filter(class_course=cc)
+        registered_students_count_data = cc.getNumberOfRegisteredStudents()
 
-        number_of_evaluations += evaluations.count()
+        #get the number of students
+        number_of_students += registered_students_count_data[0]
+        number_of_evaluated_students += registered_students_count_data[1]
 
-        total_sum += sum([
-            ANSWER_SCORE_DICT.get(evaluation.answer.lower(), 0)
-            for evaluation in evaluations
-        ])
+        #add the mean score for this current class course to the total_cc_mean_score
+        total_cc_mean_score += cc.computeGrandMeanScore()
 
         pass
 
 
-    parameter_score = 0
+    parameter_mean_core = 0
+    percentage_score = 0
 
-    if number_of_evaluations > 0:
-        parameter_score = total_sum / number_of_evaluations
+    if len(class_courses) > 0:
+        parameter_mean_score = total_cc_mean_score / number_of_lecturers
+        percentage_score = (parameter_mean_score / 5) * 100
 
-    course_rate_map['parameter_rating'] = parameter_score
+    course_rate_map['parameter_mean_score'] = parameter_mean_score
+    course_rate_map['percentage_score'] = percentage_score
+    course_rate_map['remark'] = categoryScoreBasedRemark(parameter_mean_score)
+    course_rate_map['number_of_lecturers'] = number_of_lecturers
     course_rate_map['number_of_students'] = number_of_students
+    course_rate_map['number_of_evaluated_students'] = number_of_evaluated_students
 
     return course_rate_map
 

@@ -300,6 +300,23 @@ def getDepartments(request):
     return Response([department.toMap() for department in departments])
 
 
+@api_view(['GET'])
+def getDepartmentClassCourses(request, department_id):
+
+    general_setting = GeneralSetting.objects.all().first()
+
+    department = Department.objects.get(id=department_id)
+
+
+    #lecturers in the department
+    lecturers = Lecturer.objects.filter(department=department)
+
+    #class_courses for this department
+    class_courses = ClassCourse.objects.filter(lecturer__in=lecturers)
+
+    return Response([class_course.toMap() for class_course in class_courses])
+
+
 
 
 
@@ -313,56 +330,6 @@ def getLecturers(request):
     return Response(lecturers_list)
 
 
-
-@api_view(['GET'])
-def getEvaluationResponseRates(request):
-
-    #get the general setting
-    general_setting = GeneralSetting.objects.all().first()
-
-    #get all the class_courses for the semester and academic year
-    class_courses = ClassCourse.objects.filter(semester=general_setting.current_semester, year=datetime.datetime.now().year)
-
-    response_rate_map_list: list[dict] = []
-
-    for class_course in class_courses:
-        #get the registered students for the current class_course
-        total_students, evaluated_count = class_course.getNumberOfRegisteredStudents()
-        
-
-        response_rate = (total_students / evaluated_count) * 100 if total_students else 0
-
-        response_rate_map_list.append({
-            'lecturer': class_course.lecturer.getFullName(),
-            'course_code': class_course.course.course_code,
-            'course_title': class_course.course.title,
-            'number_of_students': total_students,
-            'number_of_evaluated': evaluated_count,
-            'response_rate': response_rate
-        })
-        pass
-
-    return Response(response_rate_map_list)
-
-
-@api_view(['GET'])
-def getLecturersRatingSummary(request):
-    general_setting = GeneralSettings.objects.all().first()
-
-    class_courses = ClassCourse.objects.filter(semester=general_setting.current_semester, year=datetime.datetime.now().year)
-
-    lecturers_rating_map_list: list[dict] = []
-
-    for class_course in class_courses:  
-        lecturers_rating_map_list.append({
-            'lecturer': class_course.lecturer.getFullName(),
-            'course_code': class_course.course_code,
-            'course_title': class_course.title, 
-            'average_rating': class_course.computeLecturerRatingForCourse(),
-        })
-        pass
-
-    return Response(lecturers_rating_map_list)
 
 
 
@@ -380,9 +347,36 @@ def getCurrentClassCourses(request):
 
 
 
+#categories scores for the lecturers for the current year and academic semester
+@api_view(['GET'])
+def getCurrentClassCoursesCategoriesSummary(request):
+
+    general_setting = GeneralSetting.objects.all().first()
+
+    class_courses = ClassCourse.objects.filter(semester=general_setting.current_semester, year=datetime.datetime.now().year)
+
+    lecturers_eval_categories_list: list[dict] = []
+
+    for class_course in class_courses:
+        category_dict = {
+            'lecturer': class_course.lecturer.getFullName(),
+            'department': class_course.lecturer.department.department_name, 
+            'course': class_course.course.toMap(),
+            'categories_summary': class_course.getEvalQuestionCategoryRemarks(),
+        }
+
+        lecturers_eval_categories_list.append(category_dict)
+        pass
+
+
+    return Response(lecturers_eval_categories_list)
+
+
+
+
 
 @api_view(['GET'])
-def getCurrentClassCourseCategorySentimentSummary(request):
+def getCurrentClassCourseSentimentSummary(request):
 
     general_setting = GeneralSetting.objects.all().first()
 
@@ -708,71 +702,6 @@ def getCourses(request):
 
 
 
-#returns the lecturer ratings based on some parameters that will be specified
-# @api_view(['GET', 'POST'])
-# def getLecturersRatings(request):
-
-#     #get the filter parameters
-#     request_data = request.data
-
-
-#     lecturers: list[Lecturer] = Lecturer.objects.all()
-
-#     lecturers_list_map: list[dict[str: object]] = [
-#         buildParamLecturerMap(
-#             lecturer, ClassCourse.objects.filter( lecturer=lecturer,)
-#         ) for lecturer in lecturers
-#     ]
-
-
-#     if 'department' in request_data:
-#         department = Department.objects.get(id=request_data['department'])
-#         lecturers = [lecturer for lecturer in lecturers if lecturer.department == department]
-
-#         lecturers_list_map = [
-#             buildParamLecturerMap(lecturer, ClassCourse.objects.filter(lecturer=lecturer)) for lecturer in lecturers
-#         ]
-#         pass
-
-
-#     if 'course_code' in request_data or 'year' in request_data or 'semester' in request_data:
-
-#         # class_courses = [ClassCourse.objects.get(lecturer=lecturer) for lecturer in lecturers]
-
-#         class_courses = []
-
-#         for lecturer in lecturers:
-#             lecturer_cc = ClassCourse.objects.filter(lecturer=lecturer)
-
-#             if isinstance(lecturer_cc, ClassCourse):
-#                 class_courses.append(lecturer_cc)
-#             else:
-#                 class_courses.extend(list(lecturer_cc))
-
-#         if 'course_code' in request_data:
-#             course = Course.objects.get(course_code=request_data['course_code'])
-#             class_courses = [cc for cc in class_courses if cc.course == course]
-
-#         if 'year' in request_data:
-#             class_courses = [cc for cc in class_courses if cc.year == request_data['year']]
-
-#         if 'semester' in request_data:
-#             class_courses = [cc for cc in class_courses if cc.semester == request_data['semester']]
-#             pass
-
-#         #lecturers = [cc.lecturer for cc in class_courses]
-
-#         lecturers_list_map = [
-#             buildParamLecturerMap(cc.lecturer, [cc]) for cc in class_courses
-#         ]
-
-
-#     #todo: sorting their ratings in descending order.
-#     lecturers_list_map = sorted(
-#         lecturers_list_map, key=lambda rating_map: rating_map['parameter_rating'], reverse=True)
-
-#     return Response(lecturers_list_map)
-
 
 
 
@@ -843,93 +772,6 @@ def getLecturersRatings(request):
 
 
 
-# @api_view(['GET', 'POST'])
-# def getCourseRatings(request):
-
-#     request_data = request.data
-
-#     #load all the courses
-#     courses = Course.objects.all()
-
-
-#     #return everything a get method is submitted
-#     if request.method == 'GET':
-#         #return every course object when the request method is 'GET'
-#         courses_ratings_map: list[dict] = [
-#             buildCourseRateMap(course, ClassCourse.objects.filter(course=course)) for course in courses
-#         ]
-#         #also sort it 
-#         courses_ratings_map = sorted(courses_ratings_map, key=lambda crm: crm['parameter_rating'], reverse=True)
-
-#         return Response(courses_ratings_map)
-
-
-
-
-#     courses_ratings_map: list[dict] = []
-
-
-
-#     global_class_courses = []
-
-#     #when a department is part of the sumitted parameters
-#     if 'department' in request_data:
-        
-#         #get the department object from the database.
-#         department = Department.objects.get(id=request_data['department'])
-
-#         #get all the lecturers that belongs that department
-#         lecturers = Lecturer.objects.filter(department=department)
-
-#         #get all the class courses handle by the lecturers in that department
-#         class_courses = [ClassCourse.objects.get(lecturer=lecturer) for lecturer in lecturers]
-
-#         global_class_courses = class_courses  # just experimenting, to be deleted later.
-
-#         #create a set for the courses in the class courses
-#         courses = set([cc.course for cc in class_courses])
-
-#         #convert the courses into a dictionary
-#         courses_ratings_map = [
-#             buildCourseRateMap(
-#                 course, list(filter(lambda cc: cc.course == course, class_courses))) for course in courses
-#         ]
-#         pass
-
-
-
-#     #when the academic year  or semester is part of the submitted parameters
-#     if 'year' in request_data or 'semester' in request_data:
-
-#         #check if the global_class_courses list is empty
-#         if not global_class_courses:
-#             class_courses = ClassCourse.objects.all()
-#         else:
-#             class_courses = global_class_courses
-
-#         if 'year' in request_data:
-#             class_courses = [cc for cc in class_courses if cc.year == request_data['year']]
-
-#         if 'semester' in request_data:
-#             class_courses = [cc for cc in class_courses if cc.semester == request_data['semester']]
-#             pass
-
-#         #build course set.
-#         courses = set([cc.course for cc in class_courses])
-
-#         courses_ratings_map = [
-#             buildCourseRateMap(
-#                 course,  list(filter(lambda cc: cc.course == course, class_courses))
-#             ) for course in courses
-#         ]
-
-
-
-#     courses_ratings_map = sorted(courses_ratings_map, key=lambda crm: crm['parameter_rating'], reverse=True)
-
-#     return Response(courses_ratings_map)
-
-
 
 
 
@@ -974,7 +816,7 @@ def getCourseRatings(request):
     # Sort by parameter rating
     courses_ratings_map = sorted(
         courses_ratings_map,
-        key=lambda crm: crm['parameter_rating'],
+        key=lambda crm: crm['parameter_mean_score'],
         reverse=True
     )
 

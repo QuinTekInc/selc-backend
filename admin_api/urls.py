@@ -25,10 +25,14 @@ urlpatterns = [
     path('get-general-settings/',views.getGeneralSetting),
     path('update-general-settings/', views.updateSetting),
     path('get-all-current-class-courses/', views.getCurrentClassCourses),
-    path('get-all-current-class-courses-sentiments/', views.getCurrentClassCourseCategorySentimentSummary),
+                                        #todo: change to sentiment summary
+    path('get-all-current-class-courses-sentiments/', views.getCurrentClassCourseSentimentSummary),
+    path('get-all-current-class-courses-categories-summary/', views.getCurrentClassCoursesCategoriesSummary),
 
     
     path('departments/', views.getDepartments),
+    path('get-department-class-courses/<int:department_id>', views.getDepartmentClassCourses),
+    
     path('lecturers/', views.getLecturers),
     path('lecturer-info/<str:username>', views.getLecturerInformation),
     path('overall-lrating-summary/<str:username>', views.getOverallLecturerRatingSummary),

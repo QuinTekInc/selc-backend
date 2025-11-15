@@ -1,47 +1,46 @@
-
 from django.db import models
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 
 import datetime
 
+
 # Create your models here.
 
 
 class Notification(models.Model):
     id = models.AutoField(primary_key=True, unique=True)
-    user: User = models.OneToOneField(User, null=False, on_delete=models.CASCADE) #whom the notification is meant for.
+    user: User = models.OneToOneField(User, null=False, on_delete=models.CASCADE)  #whom the notification is meant for.
     title = models.CharField(max_length=300, default='')
     message = models.TextField(default='')
     read = models.BooleanField(default=False)
 
     def __repr__(self):
         return f'NOTIFICATION({self.id}, {self.user.username}, {self.title})'
-    
+
     def __str__(self):
         return str(self.__repr__())
-    
+
     def toMap(self):
         return {
-            'id': self.id, 
+            'id': self.id,
             'title': self.title,
             'message': self.message,
             'read': self.read
         }
 
 
-
-
 class GeneralSetting(models.Model):
     current_semester = models.IntegerField(default=1)
+    academic_year = models.IntegerField(default=datetime.datetime.now().year)
     enable_evaluations = models.BooleanField(default=False)
 
     def __repr__(self):
         return f'semester: {self.current_semester}', f'accept_evaluations: {self.enable_evaluations}'
-    
+
     def __str__(self):
         return str(self.__repr__())
-    
+
     def toMap(self) -> dict:
         return {
             'current_semester': self.current_semester,
@@ -49,11 +48,7 @@ class GeneralSetting(models.Model):
         }
 
 
-
-
-
 class Department(models.Model):
-
     id = models.BigAutoField(primary_key=True)
     department_name = models.CharField(max_length=120, unique=True, null=False)
 
@@ -63,34 +58,40 @@ class Department(models.Model):
     def __str__(self):
         return str(self.__repr__())
 
+    def getClassCourses(self) -> list:
+        lectures = Lecturer.objects.filter(department=self)
+
+        #get the classes based on the lecturers in the department
+        class_courses = ClassCourse.objects.filter(lecturer__in=lecturers)
+
+        return [class_course.toMap() for class_course in class_courses]
+
     def toMap(self):
         return {
             'department_id': self.id,
             'department_name': self.department_name
         }
-    
+
     pass
-
-
 
 
 #the student's information
 class Student(models.Model):
-    user = models.OneToOneField(User, null=False,  on_delete=models.CASCADE)
+    user = models.OneToOneField(User, null=False, on_delete=models.CASCADE)
     reference_number = models.CharField(max_length=50, null=False)
     index_number = models.CharField(max_length=50, default='')
-    age = models.IntegerField(default=18, null=False) #mostly people who come to the university are 18 years and above.
-    department: Department = models.ForeignKey(Department, related_name='std_dept', null=True, on_delete=models.SET_NULL)
+    age = models.IntegerField(default=18, null=False)  #mostly people who come to the university are 18 years and above.
+    department: Department = models.ForeignKey(Department, related_name='std_dept', null=True,
+                                               on_delete=models.SET_NULL)
     program = models.CharField(max_length=100)
     campus = models.CharField(max_length=100, default='Sunyani')
     status = models.CharField(max_length=100, default='Regular')
 
     def __repr__(self):
-        return self.user.username ,f'REF: {self.reference_number}',  self.age, self.program
+        return self.user.username, f'REF: {self.reference_number}', self.age, self.program
 
     def __str__(self):
         return str(self.__repr__())
-    
 
     def getRegisteredCourses(self) -> list:
         """
@@ -99,13 +100,11 @@ class Student(models.Model):
         """
 
         class_courses = ClassCourse.objects.filter(
-            year = datetime.datetime.now().year,
-            semester = GeneralSetting.objects.all().first().current_semester,
+            year=datetime.datetime.now().year,
+            semester=GeneralSetting.objects.all().first().current_semester,
         )
 
-
         student_classes = []
-
 
         for class_course in class_courses:
             try:
@@ -115,13 +114,11 @@ class Student(models.Model):
                 continue
 
         return student_class
-    
 
     def getFullName(self):
         return f'{self.user.first_name} {self.user.last_name}'
 
-
-    def toMap(self, is_student_login = False):
+    def toMap(self, is_student_login=False):
 
         student_map = {
             'full_name': self.getFullName(),
@@ -137,38 +134,36 @@ class Student(models.Model):
         if is_student_login:
             token, _ = Token.objects.get_or_create(user=self.user)
             student_map['token'] = token.key
-    
-        
+
         return student_map
-    pass 
 
-
-
+    pass
 
 #the lecturers information
+
+
 class Lecturer(models.Model):
     user = models.OneToOneField(User, null=False, on_delete=models.CASCADE)
-    department: Department = models.ForeignKey(Department, related_name='department', null=True, on_delete=models.SET_NULL)
+    department: Department = models.ForeignKey(Department, related_name='department', null=True,
+                                               on_delete=models.SET_NULL)
 
     def getFullName(self) -> str:
         return f'{self.user.first_name} {self.user.last_name}'
-    
+
     def getDepartmentName(self):
         if self.department:
             return self.department.department_name
-        
+
         return None
 
     def __repr__(self):
-        
+
         return self.user.username, self.getFullName(), self.getDepartmentName()
 
-    
     def __str__(self):
         return str(self.__repr__())
 
-        
-    def getOverallRatingSummary(self) -> dict:
+    def getOverallRatingSummary(self) -> list[dict]:
         #get everycourse the lecturer has taught
         class_courses = ClassCourse.objects.filter(lecturer=self)
 
@@ -182,14 +177,13 @@ class Lecturer(models.Model):
             lecturer_ratings.extend(ratings)
             pass
 
-
         for i in range(5, 0, -1):
             i_filtered_ratings = filter(lambda r: r.rating == i, lecturer_ratings)
             i_rating_count = len(list(i_filtered_ratings))
             i_rating_percentage = 0
 
             if i_rating_count > 0:
-                i_rating_percentage = (i_rating_count/len(lecturer_ratings)) * 100
+                i_rating_percentage = (i_rating_count / len(lecturer_ratings)) * 100
 
             rating_map = {
                 'rating': i,
@@ -199,9 +193,7 @@ class Lecturer(models.Model):
 
             ratings_map_list.append(rating_map)
 
-
         return ratings_map_list
-
 
     #use this data to build a "trend line chart" in the frontend
     def getYearlyAverageRatingSummary(self):
@@ -227,23 +219,20 @@ class Lecturer(models.Model):
 
         return yearly_rating_dict_list
 
-
-
     def computeLecturerOverallAverageRating(self) -> float:
 
         class_courses = ClassCourse.objects.filter(lecturer=self)
 
         if not class_courses.exists():
-            return 0 
-        
+            return 0
+
         total_ratings = 0
-        
+
         for class_course in class_courses:
             lecturer_ratings = LecturerRating.objects.filter(class_course=class_course)
             total_ratings += sum([l_rating.rating for l_rating in lecturer_ratings])
-        
-        return total_ratings / len(class_courses)
 
+        return total_ratings / len(class_courses)
 
     def toMap(self):
 
@@ -254,31 +243,24 @@ class Lecturer(models.Model):
             'rating': self.computeLecturerOverallAverageRating(),
             'department': self.getDepartmentName(),
         }
-    
+
     pass
-
-
-
 
 
 #course information
 class Course(models.Model):
-    course_code = models.CharField(primary_key=True, max_length=20,  unique=True)
+    course_code = models.CharField(primary_key=True, max_length=20, unique=True)
     title = models.CharField(max_length=200, default='')
 
-    
     def __repr__(self):
         return self.course_code, self.title
 
     def __str__(self):
         return str(self.__repr__())
 
-
-
     #info: this method calculates the cummulative performance rating and remarks of the course.
     #this calculation is based on the class_courses related to the current course.
     def computeMeanScore(self) -> float:
-
         #get all the class courses corresponding to this class.
         class_courses = ClassCourse.objects.filter(course=self)
 
@@ -287,17 +269,14 @@ class Course(models.Model):
 
         if total_evaluations == 0:
             return 0
-        
+
         #get the peformance score of each class_course, collect them to a list and find the sum
         total_score = sum([cc.computeGrandMeanScore() for cc in class_courses])
 
         #calculate the average and returns it.
         return total_score / total_evaluations
 
-
-
     def toMap(self):
-
         from .core_utils import getScoreRemark
 
         mean_score = self.computeMeanScore()
@@ -307,19 +286,16 @@ class Course(models.Model):
         return {
             'course_code': self.course_code,
             'course_title': self.title,
-            'mean_score': mean_score, 
+            'mean_score': mean_score,
             'remark': remark
         }
-    
-    pass 
 
-
-
-
+    pass
 
 #the course to be studied for particular class 
-class ClassCourse(models.Model):
 
+
+class ClassCourse(models.Model):
     id = models.AutoField(primary_key=True)
     course: Course = models.ForeignKey(Course, related_name='cc_course', on_delete=models.CASCADE)
     credit_hours = models.IntegerField(default=3)
@@ -328,6 +304,20 @@ class ClassCourse(models.Model):
     year = models.IntegerField(null=True)
     has_online = models.BooleanField(default=False)
 
+
+    def getSavableReportFileName(self):
+        return f'{self.semester}-{self.year}_{self.course.course_code}_{self.lecturer.getFullName()}.xlsx'
+
+    #this methods lists all the ClassCourses offered in an academic year
+    @staticmethod
+    def getCurrentClassCourses():
+
+        general_setting = GeneralSetting.objects.all().first()
+
+        class_courses = ClassCourse.objects.filter(semester=general_setting.current_semester,
+                                                   year=general_setting.academic_year)
+
+        return class_courses
 
     #returns the average lecturer rating got this course
     def computeLecturerRatingForCourse(self):
@@ -340,10 +330,8 @@ class ClassCourse(models.Model):
 
         return ratings_sum / len(ratings)
 
-
-
     #the mean score for the course.
-    def computeGrandMeanScore(self) -> float:
+    def computeGrandMeanScore(self) -> (float, float):
 
         from .core_utils import ANSWER_SCORE_DICT
 
@@ -354,21 +342,23 @@ class ClassCourse(models.Model):
 
         if total_evaluations == 0:
             return 0
-        
+
         ##filter the questionnaire answers where the answer_type to the question is "performance"
 
         # performance_evaluations = list(filter(
         #     lambda evaluation: evaluation.question.answer_type == 'performance', evaluations))
 
-        #get the answers for the performance_evaluations for the this class_course, convert the answer to a value in the scale of 1-5, 
+        #get the answers for to each questionnaire for this class_course, convert the answer to a value in the scale of 1-5,
         #collect them a list and find the total sum of all the values.
         total_performance_score = sum(
             [ANSWER_SCORE_DICT.get(evaluation.answer, 0) for evaluation in evaluations])
 
+        #compute the average score.
+        grand_mean_score = total_performance_score / total_evaluations
 
-        #compute the average and return it.
-        return total_performance_score / total_evaluations
+        grand_percentage_score = (grand_mean_score / 5) * 100
 
+        return grand_percentage_score, grand_percentage_score
 
     #method fo compute the number of students who have registered for the course
     def getNumberOfRegisteredStudents(self) -> tuple[int, int]:
@@ -378,21 +368,19 @@ class ClassCourse(models.Model):
             return (0, 0)
 
         total_student_count = len(student_classes)
-        
+
         #filter those who have evaluated
         evaluated_count = len(list(
             filter(lambda student_class: student_class.evaluated, student_classes)
         ))
 
         return (total_student_count, evaluated_count)
-    
 
-    
     #todo: rename this method to "getLecturerRating"
     def getLecturerRatingDetails(self) -> list[dict]:
 
         this_class_course_ratings = LecturerRating.objects.filter(class_course=self)
-        
+
         ratings_map_list: list[dict] = []
 
         for i in range(5, 0, -1):
@@ -404,8 +392,7 @@ class ClassCourse(models.Model):
             percentage = 0
 
             if rating_count > 0:
-                percentage = (rating_count/len(this_class_course_ratings)) * 100
-
+                percentage = (rating_count / len(this_class_course_ratings)) * 100
 
             ratings_map = {
                 'rating': i,
@@ -414,23 +401,19 @@ class ClassCourse(models.Model):
             }
 
             ratings_map_list.append(ratings_map)
-            
+
             pass
-        
+
         return ratings_map_list
-    
-
-
 
     #returns the suggestions and sentiments tone of the suggestion
-    def getEvalSuggestions(self) -> dict[str: list]:
+    def getEvalSuggestions(self, include_suggestions = True) -> dict[str: list]:
 
         suggestions = EvaluationSuggestion.objects.filter(class_course=self)
 
         sentiments = [suggestion.sentiment for suggestion in suggestions]
 
         sentiment_summary_list = []
-
 
         for sentiment in ('negative', 'neutral', 'positive'):
             filtered_sentiments = filter(lambda s: s.lower() == sentiment, sentiments)
@@ -442,7 +425,7 @@ class ClassCourse(models.Model):
                 sentiment_percent = (sentiment_count / len(sentiments)) * 100
 
             sentiment_map = {
-                'sentiment': sentiment, 
+                'sentiment': sentiment,
                 'sentiment_count': sentiment_count,
                 'sentiment_percent': sentiment_percent
             }
@@ -452,11 +435,15 @@ class ClassCourse(models.Model):
         suggestions_map = [suggestion.toMap(include_lecturer_rating=True) for suggestion in suggestions]
 
 
-        return {
-            'sentiment_summary': sentiment_summary_list,
-            'suggestions': suggestions_map
-        }
-    
+
+        if not include_suggestions:
+            return {'sentiment_summary': sentiment_summary_list}
+        else:
+            return {
+                'sentiment_summary': sentiment_summary_list,
+                'suggestions': suggestions_map
+            }
+
 
 
     #todo: rename this to "getQuestionnaireAnswerSummary"    
@@ -468,7 +455,6 @@ class ClassCourse(models.Model):
         questions = Questionnaire.objects.all()
 
         eval_list = []
-
 
         for question in questions:
 
@@ -483,7 +469,6 @@ class ClassCourse(models.Model):
                 }
             }
 
-
             total_evaluations = len(evaluations)
             #max_answer_score = 5 * len(evaluations)
             total_answer_score = 0
@@ -491,16 +476,15 @@ class ClassCourse(models.Model):
             #build a set for the possible answers  for the question at the current iteration
             possible_question_answers: set[str] = set([evaluation.answer for evaluation in evaluations])
 
-            for possible_answer in possible_question_answers: 
+            for possible_answer in possible_question_answers:
                 answer_count = len(
-                    list(filter(lambda evaluation: evaluation.answer==possible_answer, evaluations)))
+                    list(filter(lambda evaluation: evaluation.answer == possible_answer, evaluations)))
                 question_eval_dict['answer_summary'][possible_answer] = answer_count
 
                 total_answer_score += utils.ANSWER_SCORE_DICT[possible_answer.lower()]
 
                 pass
 
-            
             #calculate the average answer score.
             percentage_score = 0
             average_answer_score = 0
@@ -509,26 +493,24 @@ class ClassCourse(models.Model):
             if total_evaluations > 0:
                 average_answer_score = total_answer_score / total_evaluations
                 #percentage_score = (total_answer_score / max_answer_score) * 100
-                percentage_score = (average_answer_score / 5) * 100  #since the maximum score you can get for a questionnaire item is 5
-
-
+                percentage_score = (
+                                               average_answer_score / 5) * 100  #since the maximum score you can get for a questionnaire item is 5
 
             #update the dictionary
             question_eval_dict['percentage_score'] = percentage_score
             question_eval_dict['average_score'] = average_answer_score
             question_eval_dict['remark'] = utils.categoryScoreBasedRemark(average_answer_score)
-            
 
             eval_list.append(question_eval_dict)
 
-            pass 
+            pass
 
         return eval_list
-    
+
 
 
     #todo: remake this method to "getQuestionnaireCategoriesSummary"
-    def getEvalQuestionCategoryRemarks(self, include_questions = False) -> list[dict]:
+    def getEvalQuestionCategoryRemarks(self, include_questions=False) -> list[dict]:
 
         from admin_api import utils
 
@@ -538,7 +520,7 @@ class ClassCourse(models.Model):
         #list to store the category evaluations
         evals_category_list = []
 
-        for category in categories: 
+        for category in categories:
 
             #filter out the questionnaires under the category at the current iteration
             cat_questions = Questionnaire.objects.filter(category=category)
@@ -549,19 +531,19 @@ class ClassCourse(models.Model):
             for question in cat_questions:
                 #get the evaluation answers for the question at the current iteration
                 evaluations = Evaluation.objects.filter(question=question, class_course=self)
-                
+
                 if len(evaluations) == 0:
                     continue
-            
+
                 category_question_evaluations.extend(list(evaluations))
                 pass
 
-            
             total_evaluations = len(category_question_evaluations)
 
             #extract the answers from the list of evaluations and sum them up
-            eval_answers_total_score = sum([utils.ANSWER_SCORE_DICT[evaluation.answer.lower()] for evaluation in category_question_evaluations])
-            
+            eval_answers_total_score = sum(
+                [utils.ANSWER_SCORE_DICT[evaluation.answer.lower()] for evaluation in category_question_evaluations])
+
             #find the average score of the evaluations ath current category
             cat_average_score = (eval_answers_total_score / total_evaluations) if total_evaluations != 0 else 0
 
@@ -574,7 +556,6 @@ class ClassCourse(models.Model):
                 #percentage_score = (eval_answers_total_score / max_answers_score) * 100 #value here is in percentages
                 percentage_score = (cat_average_score / 5) * 100
 
-
             category_map = {
                 'category': category.cat_name,
                 'percentage_score': percentage_score,
@@ -582,22 +563,19 @@ class ClassCourse(models.Model):
                 'remark': utils.categoryScoreBasedRemark(cat_average_score)
             }
 
-
             if include_questions:
                 category_map['questions'] = [question.toMap() for question in cat_questions]
 
-            
             #append to the overall list.
             evals_category_list.append(category_map)
-                
 
         return evals_category_list
-    
 
 
 
     def __repr__(self):
         return self.id, self.course.course_code, self.lecturer.user.username
+
 
 
     def __str__(self):
@@ -609,11 +587,9 @@ class ClassCourse(models.Model):
 
         from .core_utils import getScoreRemark
 
-        grand_mean_score = self.computeGrandMeanScore()
-        grand_percentage = (grand_mean_score / 5) * 100
+        grand_mean_score, grand_percentage = self.computeGrandMeanScore()
 
         remark = getScoreRemark(grand_mean_score)
-
 
         registered_students_count, evaluated_students_count = self.getNumberOfRegisteredStudents()
 
@@ -632,11 +608,8 @@ class ClassCourse(models.Model):
             'number_of_evaluated_students': evaluated_students_count,
             'remark': remark
         }
-    
+
     pass
-
-
-
 
 
 #A student registered class......Corresponding to a ClassCourse
@@ -649,10 +622,9 @@ class StudentClass(models.Model):
 
     def __str__(self):
         return f'Student Class({self.id}, {self.student.reference_number}, {self.class_course.id})'
-    
 
-    @staticmethod 
-    def countEvaluatedCoursesFor(year:int, semester: int) -> int:
+    @staticmethod
+    def countEvaluatedCoursesFor(year: int, semester: int) -> int:
         class_courses = ClassCourse.objects.filter(year=year, semester=semester)
 
         counter = 0
@@ -663,13 +635,9 @@ class StudentClass(models.Model):
 
             pass
 
-        return counter 
+        return counter
 
-
-        
-    
     def toMap(self) -> dict:
-
         course: Course = self.class_course.course
         lecturer: Lecturer = self.class_course.lecturer
 
@@ -677,7 +645,7 @@ class StudentClass(models.Model):
             'cc_id': self.class_course.id,
             'course_code': course.course_code,
             'course_title': course.title,
-            'credit_hours': self.class_course.credit_hours, 
+            'credit_hours': self.class_course.credit_hours,
             'lecturer': lecturer.getFullName(),
             'department': lecturer.department.department_name,
             'evaluated': self.evaluated,
@@ -686,55 +654,43 @@ class StudentClass(models.Model):
     pass
 
 
-
-
-
-
 #the category for the questions.
 class QuestionCategory(models.Model):
-    
     cat_id = models.AutoField(primary_key=True)
     cat_name = models.CharField(max_length=150, default='')
 
     def __repr__(self):
         return self.cat_id, self.cat_name
-    
+
     def __str__(self):
         return str(self.__repr__())
-    
 
     def toMap(self):
         return {
             'category_id': self.cat_id,
-            'category_name': self.cat_name 
+            'category_name': self.cat_name
         }
-    
 
     def getQuestions(self):
         return Questionnaire.objects.filter(category=self)
-    
 
     pass
 
 
-
-
-
 #the questions class
 class Questionnaire(models.Model):
-
     q_id = models.AutoField(primary_key=True)
-    category: QuestionCategory = models.ForeignKey(QuestionCategory, related_name='question_category', on_delete=models.CASCADE)
+    category: QuestionCategory = models.ForeignKey(QuestionCategory, related_name='question_category',
+                                                   on_delete=models.CASCADE)
     question = models.TextField(default='')
-    answer_type = models.CharField(max_length=20, default='yes_no') #"yes_no", "performance", "time"
-
+    answer_type = models.CharField(max_length=20, default='yes_no')  #"yes_no", "performance", "time"
 
     def __repr__(self):
         return self.category.cat_name, self.question, self.answer_type
 
     def __str__(self):
         return str(self.__repr__())
-    
+
     def toMap(self):
         return {
             'id': self.q_id,
@@ -742,20 +698,19 @@ class Questionnaire(models.Model):
             'question': self.question,
             'answer_type': self.answer_type
         }
-    
-    pass
-    
 
+    pass
 
 
 #the actual answering of the questionnaires by the students
 class Evaluation(models.Model):
     answer_id = models.AutoField(primary_key=True)
     student: Student = models.ForeignKey(Student, on_delete=models.CASCADE)
-    class_course: ClassCourse = models.ForeignKey(ClassCourse, related_name='eval_class_course', on_delete=models.CASCADE)
-    question: Questionnaire = models.ForeignKey(Questionnaire, related_name='eval_questionnaire', on_delete=models.CASCADE)
+    class_course: ClassCourse = models.ForeignKey(ClassCourse, related_name='eval_class_course',
+                                                  on_delete=models.CASCADE)
+    question: Questionnaire = models.ForeignKey(Questionnaire, related_name='eval_questionnaire',
+                                                on_delete=models.CASCADE)
     answer = models.TextField(default='')
-
 
     def __repr__(self):
         return self.answer_id, self.student.reference_number, self.answer
@@ -764,69 +719,59 @@ class Evaluation(models.Model):
         return str(self.__repr__())
 
 
-
 class SentimentChoices(models.TextChoices):
     POSITIVE = ('POSITIVE', 'positive')
     NEUTRAL = ('NEUTRAL', 'netural')
     NEGATIVE = ('NEGATIVE', 'negative')
 
 
-
 class EvaluationSuggestion(models.Model):
-
     id = models.AutoField(primary_key=True)
     student: Student = models.ForeignKey(Student, related_name='s_student', on_delete=models.CASCADE)
     class_course: ClassCourse = models.ForeignKey(ClassCourse, related_name='s_class_course', on_delete=models.CASCADE)
     suggestion = models.TextField(default='')
-    sentiment = models.CharField(max_length=20, default='neutral', choices=SentimentChoices.choices) 
-
+    sentiment = models.CharField(max_length=20, default='neutral', choices=SentimentChoices.choices)
 
     #this method returns the total number of all evaluations suggestions made in 
     #specified semester in a specified academic year
     #todo: rename this method to  "countAllSuggestionsFor"
-    @staticmethod  
-    def countClassCoursesFor(year:int, semester:int):
+    @staticmethod
+    def countClassCoursesFor(year: int, semester: int):
 
         class_courses = ClassCourse.objects.filter(year=year, semester=semester)
 
-        if len(class_courses) == 0: 
+        if len(class_courses) == 0:
             return 0
-        
+
         cc_count = 0
 
         for class_course in class_courses:
             cc_count += EvaluationSuggestion.objects.filter(class_course=class_course).count()
 
         return cc_count
-    
-    
-
 
     def __repr__(self):
         return (self.id, self.student.id, self.class_course.course.course_code, self.suggestion)
-    
+
     def __str__(self):
         return str(self.__repr__())
-    
+
     def toMap(self, include_lecturer_rating=False):
 
         suggestion_map = {
-            'suggestion_id': self.id, 
+            'suggestion_id': self.id,
             'suggestion': self.suggestion,
             'sentiment': self.sentiment
         }
 
-
         if include_lecturer_rating:
             lecturer_rating = LecturerRating.objects.get(class_course=self.class_course, student=self.student)
-            suggestion_map['rating'] = lecturer_rating.rating 
+            suggestion_map['rating'] = lecturer_rating.rating
             pass
 
-
         return suggestion_map
+
     pass
-
-
 
 
 #the part where students rate a lecturer for a particular class_course
@@ -840,22 +785,16 @@ class LecturerRating(models.Model):
         return f'Lecturer Rating({self.id}, {self.class_course.lecturer.name}, RATING: {self.rating}, (course: {self.class_course.course.course_code}))'
 
 
-
-
 #handle if a student had completed an evaluation for a particular class_course.
 class EvaluationStatus(models.Model):
-
     id = models.AutoField(primary_key=models.CASCADE)
     student: Student = models.ForeignKey(Student, related_name='es_student', on_delete=models.CASCADE)
     class_course: ClassCourse = models.ForeignKey(ClassCourse, related_name='es_class_course', on_delete=models.CASCADE)
     status = models.BooleanField(default=False)
 
-
-
     @staticmethod
     def countClassCoursesFor(year: int, semester: int) -> int:
         class_courses = ClassCourse.objects.filter(year=year, semester=semester)
-
 
         if len(class_courses) == 0:
             return 0
@@ -866,19 +805,34 @@ class EvaluationStatus(models.Model):
             eval_status = EvaluationStatus.objects.filter(class_course=class_course)
             number_of_evaluations += len(eval_status)
             pass
-        
+
         return number_of_evaluations
-
-
 
     def __repr__(self):
         return self.id, self.student.reference_number, self.class_course.course.course_code, self.status
-    
+
     def __str__(self):
         return str(self.__repr__())
-    
+
     pass
 
+
+
+
+class ReportFile(models.Model):
+    id = models.AutoField(primary_key=True, unique=True)
+    file_name = models.TextField()
+    file = models.FileField(upload_to='evaluation-reports/', null=True)
+    file_type = models.CharField(max_length=10, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __repr__(self):
+        return f'({self.file_name,  self.file_type})'
+
+    def __str__(self):
+        return str(self.__repr__())
+
+    pass
 
 
 
