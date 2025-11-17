@@ -4,9 +4,10 @@ from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl.utils import get_column_letter
 
 from selc_core.core_utils import getScoreRemark
-from selc_core.models import ClassCourse
+from selc_core.models import ClassCourse, Course
 from selc_core.models import ReportFile
 
+from . import report_commons
 
 from django.core.files.base import File
 
@@ -36,41 +37,9 @@ class CourseEvalExcelReport:
         pass
 
 
-    def init_sheet_title(self, sheet: Worksheet,  title='', row=1, column=1, span_column=None):
-
-        header_cell = sheet.cell(row=row, column=column, value=title)
-        header_cell.alignment = Alignment(vertical='center', horizontal='center')
-        header_cell.font = Font(bold=True, size=14)
-
-        if span_column is not None:
-            sheet.merge_cells(start_row=row, start_column=column, end_row=row, end_column=span_column)
-
-        return header_cell
 
 
-    def init_header_cells(self, sheet: Worksheet, headers:list, row=2):
 
-        if not headers:
-            return
-
-        for col, header in enumerate(headers, start=1):
-            header_cell = sheet.cell(row=row, column=col, value=header)
-            header_cell.alignment = Alignment(vertical='center', horizontal='center')
-            header_cell.font = Font(bold=True, size=12)
-            pass
-
-        pass
-
-
-    def set_column_widths(self, sheet: Worksheet, widths: dict):
-        """
-        widths = {column_index: width_value}
-        """
-        for col_idx, width in widths.items():
-            col_letter = get_column_letter(col_idx)
-            sheet.column_dimensions[col_letter].width = width
-            pass
-        pass
 
 
 
@@ -118,13 +87,13 @@ class CourseEvalExcelReport:
         ]
 
 
-        self.init_sheet_title(ws, title='Course Evaluation Overview', span_column=2)
+        report_commons.init_sheet_title(ws, title='Course Evaluation Overview', span_column=2)
 
-        self.set_column_widths(ws, {1: 30, 2: 50})
+        report_commons.set_column_widths(ws, {1: 30, 2: 50})
 
 
 
-        for row, overview_field in enumerate(overview_list, start=1):
+        for row, overview_field in enumerate(overview_list, start=2):
 
             field_cell = ws.cell(row=row, column=1, value=overview_field[0])
             field_cell.alignment = Alignment(horizontal='center', vertical='center')
@@ -148,12 +117,12 @@ class CourseEvalExcelReport:
 
         headers = ['Question', 'Answer Type', 'Answer Option', 'Count', 'Average Score', 'Percentage Score', 'Remark']
 
-        self.init_sheet_title(ws, title='Questionnaire Answer Summary', span_column=len(headers))
+        report_commons.init_sheet_title(ws, title='Questionnaire Answer Summary', span_column=len(headers))
 
         #create the headers.
-        self.init_header_cells(ws, headers=headers)
+        report_commons.init_header_cells(ws, headers=headers)
 
-        self.set_column_widths(ws, {1: 50, 2: 10, 3: 10, 4: 12, 5: 15, 6: 15, 7: 10})
+        report_commons.set_column_widths(ws, {1: 50, 2: 10, 3: 10, 4: 12, 5: 15, 6: 15, 7: 10})
 
 
 
@@ -207,7 +176,7 @@ class CourseEvalExcelReport:
             ws.cell(row=row, column=2, value=answer_type)
 
             start_row = row
-            end_row = row + len(answer_summary)
+            end_row = row + len(answer_summary) - 1
 
             for answer_entry in answer_summary.items():
                 option, count = answer_entry
@@ -254,11 +223,11 @@ class CourseEvalExcelReport:
 
         headers = ['Core Area (Category)', 'Questions', 'Average Score', 'Percentage Score', 'Remark']
 
-        self.init_sheet_title(ws, title='Thematic Areas of Evaluation (Categories)', span_column=len(headers))
+        report_commons.init_sheet_title(ws, title='Thematic Areas of Evaluation (Categories)', span_column=len(headers))
 
-        self.init_header_cells(ws, headers)
+        report_commons.init_header_cells(ws, headers)
 
-        self.set_column_widths(ws, {1: 30, 2: 50, 3: 15, 4: 15, 5: 10})
+        report_commons.set_column_widths(ws, {1: 30, 2: 50, 3: 15, 4: 15, 5: 10})
 
 
         category_summary: list = self.class_course.getEvalQuestionCategoryRemarks(include_questions=True)
@@ -268,7 +237,7 @@ class CourseEvalExcelReport:
         #todo: populate the categories scores here.
         for summary_item in category_summary:
             category: str = summary_item['category']
-            questions: list = summary_item['questions']
+            questions: list = [question['question'] for question in summary_item['questions']]
             average_score: float = summary_item['average_score']
             percentage_score: float = summary_item['percentage_score']
             remark: str = summary_item['remark']
@@ -276,7 +245,7 @@ class CourseEvalExcelReport:
             ws.cell(row=row, column=1, value=category)
 
             start_row = row
-            end_row = row + len(questions)
+            end_row = row + len(questions) - 1
 
             for question in questions:
                 ws.cell(row=row, column=2, value=question)
@@ -307,11 +276,11 @@ class CourseEvalExcelReport:
 
         headers = ['Rating', 'Count', 'Percentage']
 
-        self.init_sheet_title(ws, title='Lecturer Rating Summary', span_column=len(headers))
+        report_commons.init_sheet_title(ws, title='Lecturer Rating Summary', span_column=len(headers))
 
-        self.init_header_cells(ws, headers)
+        report_commons.init_header_cells(ws, headers)
 
-        self.set_column_widths(ws, {1: 10, 2: 15, 3: 17})
+        report_commons.set_column_widths(ws, {1: 10, 2: 15, 3: 17})
 
 
         lecturer_rating_summary = self.class_course.getLecturerRatingDetails()
@@ -342,11 +311,11 @@ class CourseEvalExcelReport:
 
         headers = ['Sentiment', 'Count', 'Percentage']
 
-        self.init_sheet_title(ws, title='Suggestions Sentiment Summary', span_column=len(headers))
+        report_commons.init_sheet_title(ws, title='Suggestions Sentiment Summary', span_column=len(headers))
 
-        self.init_header_cells(ws, headers)
+        report_commons.init_header_cells(ws, headers)
 
-        self.set_column_widths(ws, {1: 20, 2: 15, 3: 17})
+        report_commons.set_column_widths(ws, {1: 20, 2: 15, 3: 17})
 
         sentiment_summary: list = self.class_course.getEvalSuggestions(include_suggestions=False)['sentiment_summary']
 
@@ -355,7 +324,7 @@ class CourseEvalExcelReport:
         for sentiment_summary_item in sentiment_summary:
             sentiment: str = sentiment_summary_item['sentiment']
             count: int = sentiment_summary_item['sentiment_count']
-            percentage: float = sentiment_summary_item['percentage']
+            percentage: float = sentiment_summary_item['sentiment_percent']
 
             ws.cell(row=row, column=1, value=sentiment)
             ws.cell(row=row, column=2, value=count)
@@ -371,15 +340,19 @@ class CourseEvalExcelReport:
         file_name = self.class_course.getSavableReportFileName()
         file_type = '.xlsx'
 
-        temp_path = f'/temp/report.xlsx'
-        self.work_book.save(temp_path)
 
-        with open(temp_path, 'rb') as excel_file:
-            report_file = ReportFile.objects.create(file_name=file_name, file_type=file_type)
-            report_file.file = File(excel_file)
-            report_file.save()
-
-
+        report_commons.saveWorkbook(self.work_book, file_name, file_type)
         pass
 
+
     pass
+
+
+
+
+
+def runtest():
+    course = Course.objects.get(course_code='COMP 262')
+    cc = ClassCourse.objects.get(course=course)
+
+    report = CourseEvalExcelReport(cc)
