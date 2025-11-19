@@ -8,6 +8,18 @@ from django.core.files.base import File
 from selc_core.models import ReportFile
 
 
+
+
+def create_workbook():
+    work_book = Workbook()
+    #get the default active sheet.
+    active_sheet = work_book.active
+    work_book.remove(active_sheet)
+
+    return work_book
+
+
+
 #for creating title text normally at the first row of every work sheet.
 def init_sheet_title(sheet: Worksheet, title='', row=1, column=1, span_column=None):
     header_cell = sheet.cell(row=row, column=column, value=title)

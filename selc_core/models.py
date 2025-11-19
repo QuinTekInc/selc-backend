@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 
 import datetime
+from collections import Counter
 
 
 # Create your models here.
@@ -138,6 +139,7 @@ class Student(models.Model):
         return student_map
 
     pass
+
 
 #the lecturers information
 
@@ -292,7 +294,8 @@ class Course(models.Model):
 
     pass
 
-#the course to be studied for particular class 
+
+#the course to be studied for particular class
 
 
 class ClassCourse(models.Model):
@@ -303,7 +306,6 @@ class ClassCourse(models.Model):
     semester = models.IntegerField(default=1)
     year = models.IntegerField(null=True)
     has_online = models.BooleanField(default=False)
-
 
     def getSavableReportFileName(self):
         return f'{self.semester}-{self.year}_{self.course.course_code}_{self.lecturer.getFullName()}.xlsx'
@@ -331,7 +333,7 @@ class ClassCourse(models.Model):
         return ratings_sum / len(ratings)
 
     #the mean score for the course.
-    def computeGrandMeanScore(self) -> (float, float):
+    def computeGrandMeanScore(self) -> tuple:
 
         from .core_utils import ANSWER_SCORE_DICT
 
@@ -407,7 +409,7 @@ class ClassCourse(models.Model):
         return ratings_map_list
 
     #returns the suggestions and sentiments tone of the suggestion
-    def getEvalSuggestions(self, include_suggestions = True) -> dict[str: list]:
+    def getEvalSuggestions(self, include_suggestions=True) -> dict:
 
         suggestions = EvaluationSuggestion.objects.filter(class_course=self)
 
@@ -434,8 +436,6 @@ class ClassCourse(models.Model):
 
         suggestions_map = [suggestion.toMap(include_lecturer_rating=True) for suggestion in suggestions]
 
-
-
         if not include_suggestions:
             return {'sentiment_summary': sentiment_summary_list}
         else:
@@ -445,67 +445,135 @@ class ClassCourse(models.Model):
             }
 
 
+    def getQuestionAnswerSummary(self, question, utils) -> dict:
 
-    #todo: rename this to "getQuestionnaireAnswerSummary"    
+        from selc_core import core_utils
+
+        evaluations = Evaluation.objects.filter(question=question, class_course=self).values_list('answer', flat=True)
+        answer_summary = dict(Counter(evaluations))
+
+        #some possible answers may not be found so we add them manually to the dictionary
+        #and set their counts to zero
+        possible_answers = core_utils.ANSWER_TYPE_DICT.get(question.answer_type.lower(), [])
+
+        for possible_answer in possible_answers:
+            if possible_answer in answer_summary:
+                continue
+
+            answer_summary[possible_answer] = 0
+            pass
+
+
+        question_eval_dict = {
+            'question': question.question,
+            'answer_type': question.answer_type,
+            'answer_summary': answer_summary,
+        }
+
+        total_evaluations = evaluations.count()
+        # max_answer_score = 5 * len(evaluations)
+        total_answer_score = 0
+
+        for possible_answer, count in answer_summary.items():
+            answer_score = utils.ANSWER_SCORE_DICT.get(possible_answer.lower(), 0)
+            total_answer_score += answer_score * count
+            pass
+
+        # calculate the average answer score.
+        percentage_score = 0
+        average_answer_score = 0
+
+        # if max_answer_score > 0:
+        if total_evaluations > 0:
+            average_answer_score = total_answer_score / total_evaluations
+            # percentage_score = (total_answer_score / max_answer_score) * 100
+            percentage_score = (
+                                           average_answer_score / 5) * 100  # since the maximum score you can get for a questionnaire item is 5
+
+        # update the dictionary
+        question_eval_dict['percentage_score'] = percentage_score
+        question_eval_dict['average_score'] = average_answer_score
+        question_eval_dict['remark'] = utils.categoryScoreBasedRemark(average_answer_score)
+
+        return question_eval_dict
+
+
+
+    #todo: rename this to "getQuestionnaireAnswerSummary"
     def getEvalDetails(self) -> list[dict]:
+
+        #data is returned the format below
+        """
+        [
+
+            {
+                "category": "Course Content",
+                "mean_score": 4.75,
+                "percentage_score": 95.0,
+                "remark": "Excellent",
+                "questions": [
+                    {
+                        "question": "Lecturer has provided helpful course outline",
+                        "answer_type": "performance",
+                        "answer_summary": {
+                            "Excellent": 1
+                        },
+                        "percentage_score": 100.0,
+                        "average_score": 5.0,
+                        "remark": "Excellent"
+                    },
+
+                ]
+            },
+
+        ]
+        """
 
         from admin_api import utils
 
-        #get the questions
-        questions = Questionnaire.objects.all()
+        #get the categories
+        categories = QuestionCategory.objects.all()
 
-        eval_list = []
+        cat_list = []
 
-        for question in questions:
 
-            #get the evaluations for the question at the current iteration
-            evaluations = Evaluation.objects.filter(question=question, class_course=self)
+        for category in categories:
 
-            question_eval_dict = {
-                'question': question.question,
-                'answer_type': question.answer_type,
-                'answer_summary': {
-
-                }
+            cat_map = {
+                'category': category.cat_name
             }
 
-            total_evaluations = len(evaluations)
-            #max_answer_score = 5 * len(evaluations)
-            total_answer_score = 0
+            #get the questions
+            questions = Questionnaire.objects.filter(category=category)
 
-            #build a set for the possible answers  for the question at the current iteration
-            possible_question_answers: set[str] = set([evaluation.answer for evaluation in evaluations])
+            #get the answers to the list of questions under the category
+            #the goal is to calculate the mean and percentage scores of the category
+            evaluation_answers = Evaluation.objects.filter(class_course=self, question__in=questions).values_list('answer', flat=True)
 
-            for possible_answer in possible_question_answers:
-                answer_count = len(
-                    list(filter(lambda evaluation: evaluation.answer == possible_answer, evaluations)))
-                question_eval_dict['answer_summary'][possible_answer] = answer_count
+            total_answer_score = sum([utils.ANSWER_SCORE_DICT.get(answer.lower(), 0) for answer in evaluation_answers])
 
-                total_answer_score += utils.ANSWER_SCORE_DICT[possible_answer.lower()]
+            cat_mean_score = total_answer_score / len(evaluation_answers)
+            cat_percentage_score = (cat_mean_score / 5) * 100
 
+
+            cat_map['mean_score'] = cat_mean_score
+            cat_map['percentage_score'] = cat_percentage_score
+            cat_map['remark'] = utils.categoryScoreBasedRemark(cat_mean_score)
+
+
+            questions_list = []
+
+            for question in questions:
+                question_answer_summary = self.getQuestionAnswerSummary(question, utils)
+                questions_list.append(question_answer_summary)
                 pass
 
-            #calculate the average answer score.
-            percentage_score = 0
-            average_answer_score = 0
+            cat_map['questions'] = questions_list
 
-            #if max_answer_score > 0:
-            if total_evaluations > 0:
-                average_answer_score = total_answer_score / total_evaluations
-                #percentage_score = (total_answer_score / max_answer_score) * 100
-                percentage_score = (
-                                               average_answer_score / 5) * 100  #since the maximum score you can get for a questionnaire item is 5
+            cat_list.append(cat_map)
 
-            #update the dictionary
-            question_eval_dict['percentage_score'] = percentage_score
-            question_eval_dict['average_score'] = average_answer_score
-            question_eval_dict['remark'] = utils.categoryScoreBasedRemark(average_answer_score)
 
-            eval_list.append(question_eval_dict)
-
-            pass
-
-        return eval_list
+        return cat_list
 
 
 
@@ -527,7 +595,7 @@ class ClassCourse(models.Model):
 
             category_question_evaluations: list[Evaluation] = []
 
-            #iterate through the filterd questions
+            #iterate through the filtered questions
             for question in cat_questions:
                 #get the evaluation answers for the question at the current iteration
                 evaluations = Evaluation.objects.filter(question=question, class_course=self)
@@ -571,17 +639,11 @@ class ClassCourse(models.Model):
 
         return evals_category_list
 
-
-
     def __repr__(self):
         return self.id, self.course.course_code, self.lecturer.user.username
 
-
-
     def __str__(self):
         return str(self.__repr__())
-
-
 
     def toMap(self) -> dict:
 
@@ -592,6 +654,8 @@ class ClassCourse(models.Model):
         remark = getScoreRemark(grand_mean_score)
 
         registered_students_count, evaluated_students_count = self.getNumberOfRegisteredStudents()
+
+        response_rate = (evaluated_students_count / registered_students_count) * 100
 
         return {
             'cc_id': self.id,
@@ -606,6 +670,7 @@ class ClassCourse(models.Model):
             'lecturer_course_rating': self.computeLecturerRatingForCourse(),
             'number_of_registered_students': registered_students_count,
             'number_of_evaluated_students': evaluated_students_count,
+            'response_rate': response_rate,
             'remark': remark
         }
 
@@ -613,7 +678,7 @@ class ClassCourse(models.Model):
 
 
 #A student registered class......Corresponding to a ClassCourse
-#todo: remame this model or class to "RegisteredClass"
+#todo: rename this model or class to "RegisteredClass"
 class StudentClass(models.Model):
     id = models.AutoField(primary_key=True)
     student: Student = models.ForeignKey(Student, related_name='student', on_delete=models.CASCADE)
@@ -817,8 +882,6 @@ class EvaluationStatus(models.Model):
     pass
 
 
-
-
 class ReportFile(models.Model):
     id = models.AutoField(primary_key=True, unique=True)
     file_name = models.TextField()
@@ -827,12 +890,9 @@ class ReportFile(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __repr__(self):
-        return f'({self.file_name,  self.file_type})'
+        return f'({self.file_name, self.file_type})'
 
     def __str__(self):
         return str(self.__repr__())
 
     pass
-
-
-

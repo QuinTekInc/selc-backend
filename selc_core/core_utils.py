@@ -1,5 +1,12 @@
 
 
+ANSWER_TYPE_DICT: dict ={
+    "performance": ['Excellent', 'Very Good', 'Good', 'Average', 'Bad'],
+    "time": ['Always', 'Very Often', 'Sometimes', 'Rarely', 'Never'],
+    "yes_no": ['Yes', 'No']
+
+}
+
 
 ANSWER_SCORE_DICT = {
     #for performance

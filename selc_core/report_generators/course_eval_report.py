@@ -26,6 +26,10 @@ class CourseEvalExcelReport:
         self.work_book.remove(self.work_book.active)
 
 
+        #load the category info
+        self.eval_summary = self.class_course.getEvalDetails()
+
+
         self.overview_sheet()
         self.questionnaire_answer_summary_sheet()
         self.category_scores_sheet()
@@ -44,9 +48,7 @@ class CourseEvalExcelReport:
 
 
     def overview_sheet(self):
-        ws = Worksheet(self.work_book)
-        ws.title = 'Overview'
-
+        ws = self.work_book.create_sheet(title='Overview')
 
         number_of_students, evaluated_students = self.class_course.getNumberOfRegisteredStudents()
         response_rate = (evaluated_students / number_of_students) * 100
@@ -111,10 +113,6 @@ class CourseEvalExcelReport:
 
         ws = self.work_book.create_sheet(title='Questionnaire Answers')
 
-        #get the evaluation answer summary
-        eval_answer_summary: list = self.class_course.getEvalDetails()
-
-
         headers = ['Question', 'Answer Type', 'Answer Option', 'Count', 'Average Score', 'Percentage Score', 'Remark']
 
         report_commons.init_sheet_title(ws, title='Questionnaire Answer Summary', span_column=len(headers))
@@ -124,8 +122,9 @@ class CourseEvalExcelReport:
 
         report_commons.set_column_widths(ws, {1: 50, 2: 10, 3: 10, 4: 12, 5: 15, 6: 15, 7: 10})
 
-
-
+        # extract the questionnaire answer summaries
+        questions_answer_summary: list = [question_dict for summary in self.eval_summary for question_dict in
+                                          summary.get('questions', [])]
         '''
             {
               'question': 'Coverage of course content by lecturer',
@@ -160,7 +159,7 @@ class CourseEvalExcelReport:
 
         row = 3
 
-        for eval_summary_item in eval_answer_summary:
+        for eval_summary_item in questions_answer_summary:
 
             question: str = eval_summary_item['question']
             answer_type: str = eval_summary_item['answer_type']
