@@ -262,7 +262,7 @@ class Course(models.Model):
 
     #info: this method calculates the cummulative performance rating and remarks of the course.
     #this calculation is based on the class_courses related to the current course.
-    def computeMeanScore(self) -> float:
+    def computeMeanScore(self) -> tuple[float, float]:
         #get all the class courses corresponding to this class.
         class_courses = ClassCourse.objects.filter(course=self)
 
@@ -272,16 +272,21 @@ class Course(models.Model):
         if total_evaluations == 0:
             return 0
 
-        #get the peformance score of each class_course, collect them to a list and find the sum
-        total_score = sum([cc.computeGrandMeanScore() for cc in class_courses])
+        #get the peformance and percentage score of each class_course, collect them to a list and find the sum
+        mean_score_tuples = [cc.computeGrandMeanScore() for cc in class_courses]
+
+        total_score = sum([score_tuple[0] for score_tuple in mean_score_tuples])
+
+        course_mean_score = total_score / total_evaluations
+        course_percentage = (course_mean_score / 5) * 100
 
         #calculate the average and returns it.
-        return total_score / total_evaluations
+        return course_mean_score, course_percentage
 
     def toMap(self):
         from .core_utils import getScoreRemark
 
-        mean_score = self.computeMeanScore()
+        mean_score, percentage = self.computeMeanScore()
 
         remark = getScoreRemark(mean_score)
 
@@ -289,6 +294,7 @@ class Course(models.Model):
             'course_code': self.course_code,
             'course_title': self.title,
             'mean_score': mean_score,
+            'percentage_score': percentage,
             'remark': remark
         }
 
@@ -343,7 +349,7 @@ class ClassCourse(models.Model):
         total_evaluations = len(evaluations)
 
         if total_evaluations == 0:
-            return 0
+            return 0, 0
 
         ##filter the questionnaire answers where the answer_type to the question is "performance"
 
@@ -378,6 +384,7 @@ class ClassCourse(models.Model):
 
         return (total_student_count, evaluated_count)
 
+
     #todo: rename this method to "getLecturerRating"
     def getLecturerRatingDetails(self) -> list[dict]:
 
@@ -407,6 +414,7 @@ class ClassCourse(models.Model):
             pass
 
         return ratings_map_list
+
 
     #returns the suggestions and sentiments tone of the suggestion
     def getEvalSuggestions(self, include_suggestions=True) -> dict:
@@ -481,19 +489,18 @@ class ClassCourse(models.Model):
 
         # calculate the average answer score.
         percentage_score = 0
-        average_answer_score = 0
+        mean_answer_score = 0
 
         # if max_answer_score > 0:
         if total_evaluations > 0:
-            average_answer_score = total_answer_score / total_evaluations
+            mean_answer_score = total_answer_score / total_evaluations
             # percentage_score = (total_answer_score / max_answer_score) * 100
-            percentage_score = (
-                                           average_answer_score / 5) * 100  # since the maximum score you can get for a questionnaire item is 5
+            percentage_score = (mean_answer_score / 5) * 100  # since the maximum score you can get for a questionnaire item is 5
 
         # update the dictionary
+        question_eval_dict['mean_score'] = mean_answer_score
         question_eval_dict['percentage_score'] = percentage_score
-        question_eval_dict['average_score'] = average_answer_score
-        question_eval_dict['remark'] = utils.categoryScoreBasedRemark(average_answer_score)
+        question_eval_dict['remark'] = utils.categoryScoreBasedRemark(mean_answer_score)
 
         return question_eval_dict
 
@@ -552,8 +559,12 @@ class ClassCourse(models.Model):
 
             total_answer_score = sum([utils.ANSWER_SCORE_DICT.get(answer.lower(), 0) for answer in evaluation_answers])
 
-            cat_mean_score = total_answer_score / len(evaluation_answers)
-            cat_percentage_score = (cat_mean_score / 5) * 100
+            cat_mean_score = 0
+            cat_percentage_score = 0
+
+            if len(evaluation_answers) > 0:
+                cat_mean_score = total_answer_score / len(evaluation_answers)
+                cat_percentage_score = (cat_mean_score / 5) * 100
 
 
             cat_map['mean_score'] = cat_mean_score

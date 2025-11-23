@@ -1,6 +1,8 @@
 from openpyxl.workbook import Workbook
 from openpyxl.worksheet import worksheet
 
+from . import report_commons
+
 from selc_core.models import Department, Lecturer, ClassCourse
 
 
@@ -11,11 +13,12 @@ class DepartmentalExcelReport:
 
         #get the lectures in the department
         self.lecturers = Lecturer.objects.filter(department=department)
+
         #get the class_courses offered by lectures in the department
         self.class_courses = ClassCourse.getCurrentClassCourses().filter(lecturer__in=self.lecturers)
 
         #create a work book here.
-        self.work_book = Workbook()
+        self.work_book = report_commons.create_workbook()
 
         pass
 

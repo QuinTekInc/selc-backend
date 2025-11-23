@@ -4,7 +4,9 @@ from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
 from openpyxl.utils import get_column_letter
 
-from django.core.files.base import File
+from io import BytesIO
+
+from django.core.files.base import ContentFile
 from selc_core.models import ReportFile
 
 
@@ -23,7 +25,7 @@ def create_workbook():
 #for creating title text normally at the first row of every work sheet.
 def init_sheet_title(sheet: Worksheet, title='', row=1, column=1, span_column=None):
     header_cell = sheet.cell(row=row, column=column, value=title)
-    header_cell.alignment = Alignment(vertical='center', horizontal='center')
+    header_cell.alignment = Alignment(vertical='center', horizontal='center', wrap_text=True)
     header_cell.font = Font(bold=True, size=14)
 
     if span_column is not None:
@@ -35,14 +37,14 @@ def init_sheet_title(sheet: Worksheet, title='', row=1, column=1, span_column=No
 
 
 #function that populates table headers in a given worksheet.
-def init_header_cells(sheet: Worksheet, headers: list, row=2):
+def init_header_cells(sheet: Worksheet, headers: list, row=2, start_col=1):
 
     if not headers:
         return
 
-    for col, header in enumerate(headers, start=1):
+    for col, header in enumerate(headers, start=start_col):
         header_cell = sheet.cell(row=row, column=col, value=header)
-        header_cell.alignment = Alignment(vertical='center', horizontal='center')
+        header_cell.alignment = Alignment(vertical='center', horizontal='center', wrap_text=True)
         header_cell.font = Font(bold=True, size=12)
         pass
 
@@ -68,12 +70,17 @@ def set_column_widths(sheet: Worksheet, widths: dict):
 
 def saveWorkbook(work_book: Workbook, file_name: str, file_type: str):
 
-    temp_path = f'/temp/report{file_type}'
-    work_book.save(temp_path)
+    # temp_path = f'/temp/report{file_type}'
+    # work_book.save(temp_path)
 
-    with open(temp_path, 'rb') as excel_file:
-        report_file = ReportFile.objects.create(file_name=file_name, file_type=file_type)
-        report_file.file = File(excel_file)
-        report_file.save()
+    file_stream = BytesIO()
+    work_book.save(file_stream)
+    file_stream.seek(0)
+
+    report_file = ReportFile.objects.create(file_name=file_name, file_type=file_type)
+    report_file.file.save(f'{file_name}.{file_type}', ContentFile(file_stream.read()))
+    report_file.save()
+
+    file_stream.close()
 
     pass

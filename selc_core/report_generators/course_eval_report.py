@@ -164,7 +164,7 @@ class CourseEvalExcelReport:
             question: str = eval_summary_item['question']
             answer_type: str = eval_summary_item['answer_type']
             answer_summary: dict = eval_summary_item['answer_summary']
-            average_score: float = eval_summary_item['average_score']
+            average_score: float = eval_summary_item['mean_score']
             percentage_score: float = eval_summary_item['percentage_score']
             remark: float = eval_summary_item['remark']
 
@@ -297,6 +297,8 @@ class CourseEvalExcelReport:
             ws.cell(row=row, column=2, value=count)
 
             ws.cell(row=row, column=3, value=percentage)
+
+            row += 1
             pass
 
         pass
@@ -329,6 +331,7 @@ class CourseEvalExcelReport:
             ws.cell(row=row, column=2, value=count)
             ws.cell(row=row, column=3, value=percentage)
 
+            row += 1
             pass
 
 
