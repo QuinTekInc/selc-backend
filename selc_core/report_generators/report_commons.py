@@ -65,6 +65,41 @@ def set_column_widths(sheet: Worksheet, widths: dict):
 
 
 
+def create_cell(work_sheet: Worksheet, row: int, column: int, value=None):
+
+    cell = work_sheet.cell(row=row, column=column, value=value)
+
+    if isinstance(value, int) or isinstance(value, float):
+        cell.alignment = Alignment(vertical='top', horizontal='right', wrap_text=True)
+        pass
+    elif isinstance(value, str):
+        cell.alignment = Alignment(vertical='top', horizontal='left', wrap_text=True)
+        pass
+
+    return cell
+
+
+
+def merge_cells(work_sheet: Worksheet, start_row: int, start_column: int, end_row: int, end_column: int, alignment=None, center=False):
+
+    cell = work_sheet.cell(row=start_row, column=start_column)
+
+    if alignment is not None:
+        cell.alignment = alignment
+
+    #this is the default alignment
+    if alignment is None:
+        cell.alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
+
+    if center:
+        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+
+
+    #perform the actual merging of the cells
+    work_sheet.merge_cells(start_row=start_row, start_column=start_column, end_row=end_row, end_column=end_column)
+
+    pass
+
 
 
 

@@ -352,7 +352,6 @@ class CourseEvalExcelReport:
 
 
 
-
 def runtest():
     course = Course.objects.get(course_code='COMP 262')
     cc = ClassCourse.objects.get(course=course)

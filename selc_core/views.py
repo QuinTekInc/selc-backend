@@ -12,4 +12,18 @@ from rest_framework.decorators import api_view
 @api_view(['GET', 'POST'])
 def generate_report(request):
 
-    return Response()
+    request_data = request.data
+
+    report = None
+
+    #check it is a class_course
+    if 'class_course' in request_data:
+        pass
+
+    elif 'admin_report' in request_data:
+        pass
+
+    elif 'department_report' in request_data:
+         pass
+
+    return Response({'message': 'this functionality is yet to be implemented'})
