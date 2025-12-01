@@ -190,7 +190,7 @@ def buildCourseRateMap(course: Course, class_courses: list[ClassCourse]) -> dict
         number_of_evaluated_students += registered_students_count_data[1]
 
         #add the mean score for this current class course to the total_cc_mean_score
-        total_cc_mean_score += cc.computeGrandMeanScore()
+        total_cc_mean_score += cc.computeGrandMeanScore()[0]
 
         pass
 

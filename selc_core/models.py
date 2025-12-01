@@ -59,11 +59,19 @@ class Department(models.Model):
     def __str__(self):
         return str(self.__repr__())
 
-    def getClassCourses(self) -> list:
-        lectures = Lecturer.objects.filter(department=self)
+
+    def getSavableReportFileName(self) -> str:
+        return f'dept_{self.department_name}_report'
+
+    # returns all the classcourses handled the lecturers in the department
+    def getClassCourses(self, as_map=False) -> object:
+        lecturers = Lecturer.objects.filter(department=self)
 
         #get the classes based on the lecturers in the department
         class_courses = ClassCourse.objects.filter(lecturer__in=lecturers)
+
+        if not as_map:
+            return class_courses
 
         return [class_course.toMap() for class_course in class_courses]
 
@@ -270,7 +278,7 @@ class Course(models.Model):
         total_evaluations = len(class_courses)
 
         if total_evaluations == 0:
-            return 0
+            return 0, 0
 
         #get the peformance and percentage score of each class_course, collect them to a list and find the sum
         mean_score_tuples = [cc.computeGrandMeanScore() for cc in class_courses]
@@ -314,7 +322,7 @@ class ClassCourse(models.Model):
     has_online = models.BooleanField(default=False)
 
     def getSavableReportFileName(self):
-        return f'{self.semester}-{self.year}_{self.course.course_code}_{self.lecturer.getFullName()}.xlsx'
+        return f'{self.semester}0{self.year}_{self.course.course_code}_{self.lecturer.getFullName()}.xlsx'
 
     #this methods lists all the ClassCourses offered in an academic year
     @staticmethod
@@ -366,7 +374,7 @@ class ClassCourse(models.Model):
 
         grand_percentage_score = (grand_mean_score / 5) * 100
 
-        return grand_percentage_score, grand_percentage_score
+        return grand_mean_score, grand_percentage_score
 
     #method fo compute the number of students who have registered for the course
     def getNumberOfRegisteredStudents(self) -> tuple[int, int]:
@@ -899,6 +907,7 @@ class ReportFile(models.Model):
     file = models.FileField(upload_to='evaluation-reports/', null=True)
     file_type = models.CharField(max_length=10, default='')
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __repr__(self):
         return f'({self.file_name, self.file_type})'
@@ -906,4 +915,9 @@ class ReportFile(models.Model):
     def __str__(self):
         return str(self.__repr__())
 
+    def toMap(self):
+        return {
+            'file_name': self.file_name,
+            'file_type': self.file_type
+        }
     pass

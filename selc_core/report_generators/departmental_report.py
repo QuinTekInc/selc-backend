@@ -6,18 +6,29 @@ from . import report_commons
 from .bulk_report import BulkExcelReport
 
 from selc_core.models import Department, Lecturer, ClassCourse
+from selc_core.models import GeneralSetting
 
 
 class DepartmentalExcelReport:
 
-    def __init__(self, department: Department) -> None:
+    def __init__(self, department: Department, year=None, semester=None) -> None:
         self.department = department
 
         #get the lectures in the department
         self.lecturers = Lecturer.objects.filter(department=department)
 
-        #get the class_courses offered by lectures in the department
-        self.class_courses = ClassCourse.getCurrentClassCourses().filter(lecturer__in=self.lecturers)
+        general_setting = GeneralSetting.objects.first()
+
+        self.year = year if year is not None else general_setting.academic_year
+
+        self.semester = semester if semester is not None else general_setting.current_semester
+
+        if year is None and semester is None:
+            self.class_courses = ClassCourse.getCurrentClassCourses().filter(lecturer__in=self.lecturers)
+        else:
+            self.class_courses = self.department.getClassCourses().filter(year=self.year, semester=self.semester)
+            pass
+
 
         #create a work book here.
         self.work_book = report_commons.create_workbook()
@@ -68,7 +79,7 @@ class DepartmentalExcelReport:
 
 
     def save(self):
-        file_name = f'{self.department.department_name}_dept_report'
+        file_name = f'{self.year}0{self.semester}_{self.department.getSavableReportFileName()}'
         file_type = '.xlsx'
 
         report_commons.saveWorkbook(self.work_book, file_name, file_type)
