@@ -246,11 +246,17 @@ class Lecturer(models.Model):
 
     def toMap(self):
 
+        from admin_api import utils
+
+        rating = self.computeLecturerOverallAverageRating()
+        remark = utils.categoryScoreBasedRemark(rating)
+
         return {
             'username': self.user.username,
-            'name': f'{self.user.first_name} {self.user.last_name}',
+            'name': self.getFullName(),
             'email': self.user.email.strip() if self.user.email else 'N/A',
-            'rating': self.computeLecturerOverallAverageRating(),
+            'rating': rating,
+            'remark': remark,
             'department': self.getDepartmentName(),
         }
 
@@ -268,42 +274,69 @@ class Course(models.Model):
     def __str__(self):
         return str(self.__repr__())
 
+
+    def computeMeanScore(self, class_courses=None) -> tuple[float, float]:
+
+        if class_courses is None or len(class_courses) == 0: 
+            return 0, 0
+
+        score_tuples = [cc.computeGrandMeanScore() for cc in class_courses]
+
+        mean_scores = [score_tuple[0] for score_tuple in score_tuples]
+
+        total_mean_score = sum(mean_scores)
+
+        course_mean_score = total_mean_score / len(mean_scores)
+
+        course_percentage = (course_mean_score/5) * 100
+
+        return course_mean_score, course_percentage
+
+
     #info: this method calculates the cummulative performance rating and remarks of the course.
     #this calculation is based on the class_courses related to the current course.
-    def computeMeanScore(self) -> tuple[float, float]:
+    def computeOverallCourseMeanScore(self) -> tuple[float, float]:
         #get all the class courses corresponding to this class.
         class_courses = ClassCourse.objects.filter(course=self)
 
-        #the length of the class courses for this course in particular.
-        total_evaluations = len(class_courses)
+        return self.computeMeanScore(class_courses)
 
-        if total_evaluations == 0:
-            return 0, 0
 
-        #get the peformance and percentage score of each class_course, collect them to a list and find the sum
-        mean_score_tuples = [cc.computeGrandMeanScore() for cc in class_courses]
+    def computeCurrentSemesterMeanScore(self):
+        class_courses = ClassCourse.getCurrentClassCourses().filter(course=self)
+        return self.computeMeanScore(class_courses)
 
-        total_score = sum([score_tuple[0] for score_tuple in mean_score_tuples])
 
-        course_mean_score = total_score / total_evaluations
-        course_percentage = (course_mean_score / 5) * 100
+    def courseInfo():
 
-        #calculate the average and returns it.
-        return course_mean_score, course_percentage
+        #lecturers who have handled this course (as class_course)
+        #lecturers currently handling this course
+        #mean_score for the semester
+        #percentage score for the semester
+
+        return 
 
     def toMap(self):
         from .core_utils import getScoreRemark
 
-        mean_score, percentage = self.computeMeanScore()
-
+        mean_score, percentage = self.computeOverallCourseMeanScore()
         remark = getScoreRemark(mean_score)
+
+        c_mean_score, c_percentage = self.computeCurrentSemesterMeanScore()
+        c_remark = getScoreRemark(c_mean_score)
+
 
         return {
             'course_code': self.course_code,
             'course_title': self.title,
+            
             'mean_score': mean_score,
             'percentage_score': percentage,
-            'remark': remark
+            'remark': remark,
+
+            'c_mean_score': c_mean_score,
+            'c_percentage_score': c_percentage,
+            'c_remark': c_remark
         }
 
     pass
@@ -918,6 +951,7 @@ class ReportFile(models.Model):
     def toMap(self):
         return {
             'file_name': self.file_name,
-            'file_type': self.file_type
+            'file_type': self.file_type,
+            'file_url': self.file.path
         }
     pass

@@ -44,9 +44,6 @@ class CourseEvalExcelReport:
 
 
 
-
-
-
     def overview_sheet(self):
         ws = self.work_book.create_sheet(title='Overview')
 
@@ -119,6 +116,7 @@ class CourseEvalExcelReport:
 
         #create the headers.
         report_commons.init_header_cells(ws, headers=headers)
+        report_commons.set_row_height(ws, 2, 0.4, in_inches=True)
 
         report_commons.set_column_widths(ws, {1: 50, 2: 10, 3: 10, 4: 12, 5: 15, 6: 15, 7: 10})
 
@@ -170,7 +168,7 @@ class CourseEvalExcelReport:
 
 
             #populate the question cell.
-            ws.cell(row=row, column=1, value=question)
+            report_commons.create_cell(ws, row=row, column=1, value=question)
 
             ws.cell(row=row, column=2, value=answer_type)
 
@@ -225,6 +223,7 @@ class CourseEvalExcelReport:
         report_commons.init_sheet_title(ws, title='Thematic Areas of Evaluation (Categories)', span_column=len(headers))
 
         report_commons.init_header_cells(ws, headers)
+        report_commons.set_row_height(ws, 2, 0.4, in_inches=True)
 
         report_commons.set_column_widths(ws, {1: 30, 2: 50, 3: 15, 4: 15, 5: 10})
 
@@ -247,7 +246,7 @@ class CourseEvalExcelReport:
             end_row = row + len(questions) - 1
 
             for question in questions:
-                ws.cell(row=row, column=2, value=question)
+                report_commons.create_cell(ws, row=row, column=2, value=question)
                 row += 1
                 pass
 
@@ -278,6 +277,7 @@ class CourseEvalExcelReport:
         report_commons.init_sheet_title(ws, title='Lecturer Rating Summary', span_column=len(headers))
 
         report_commons.init_header_cells(ws, headers)
+        report_commons.set_row_height(ws, 2, 0.3, in_inches=True)
 
         report_commons.set_column_widths(ws, {1: 10, 2: 15, 3: 17})
 
@@ -315,6 +315,7 @@ class CourseEvalExcelReport:
         report_commons.init_sheet_title(ws, title='Suggestions Sentiment Summary', span_column=len(headers))
 
         report_commons.init_header_cells(ws, headers)
+        report_commons.set_row_height(ws, 2, 0.3, in_inches=True)
 
         report_commons.set_column_widths(ws, {1: 20, 2: 15, 3: 17})
 
@@ -349,11 +350,3 @@ class CourseEvalExcelReport:
 
     pass
 
-
-
-
-def runtest():
-    course = Course.objects.get(course_code='COMP 262')
-    cc = ClassCourse.objects.get(course=course)
-
-    report = CourseEvalExcelReport(cc)

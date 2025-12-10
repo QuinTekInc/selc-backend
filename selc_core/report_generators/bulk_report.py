@@ -78,7 +78,10 @@ class BulkExcelReport:
                                         span_column=span_col)
 
         report_commons.init_header_cells(ws, headers)
+
         report_commons.init_header_cells(ws, subheaders, row=3, start_col=len(headers))
+        report_commons.set_row_height(ws, 2, 0.6, in_inches=True)
+
 
         # todo: merge the lecturer, department, course code, title header cells vertically
         for header_col, _ in enumerate(headers[0: len(headers) - 1], start=1):
@@ -162,6 +165,7 @@ class BulkExcelReport:
         report_commons.init_header_cells(ws, headers)
 
         report_commons.init_header_cells(ws, subheaders, row=3, start_col=len(headers))
+        report_commons.set_row_height(ws, 2, 0.3, in_inches=True)
 
         # span the last main header col to be at par with the subheaders.
         ws.merge_cells(start_row=2, start_column=len(headers), end_row=2, end_column=span_col)
@@ -227,6 +231,8 @@ class BulkExcelReport:
                                         span_column=len(headers))
 
         report_commons.init_header_cells(ws, headers)
+        report_commons.set_row_height(ws, 2, 0.4, in_inches=True)
+
 
         col_widths = {1: 50, 2: 45, 3: 30, 4: 45, 5: 35, 6: 35, 7: 38}
         report_commons.set_column_widths(ws, col_widths)
@@ -285,6 +291,7 @@ class BulkExcelReport:
         report_commons.init_header_cells(ws, headers)
 
         report_commons.init_header_cells(ws, subheaders, row=3, start_col=len(headers))
+        report_commons.set_row_height(ws, 3, 0.4, in_inches=True)
 
         for col, _ in enumerate(headers[0: len(headers) - 1], start=1):
             ws.merge_cells(start_row=2, start_column=col, end_row=3, end_column=col)
@@ -333,6 +340,8 @@ class BulkExcelReport:
 
     def build_questionnaire_evaluation_cell(self, sheet: Worksheet, class_course: ClassCourse, q_start_row) -> int:
 
+        current_row = q_start_row
+
         cc_map = class_course.toMap()
 
         # create the detail cells
@@ -347,100 +356,107 @@ class BulkExcelReport:
         """
 
         # name detail cells
-        self.build_field_cell(sheet, row=q_start_row, column=1, value='Name of Lecturer')
+        self.build_field_cell(sheet, row=current_row, column=1, value='Name of Lecturer')
 
-        sheet.cell(row=q_start_row, column=2, value=class_course.lecturer.getFullName())  # spans 3 columns BCD
+        sheet.cell(row=current_row, column=2, value=class_course.lecturer.getFullName())  # spans 3 columns BCD
         # perform necessary row merging
-        sheet.merge_cells(start_row=q_start_row, start_column=2, end_row=q_start_row, end_column=4)
+        sheet.merge_cells(start_row=current_row, start_column=2, end_row=current_row, end_column=4)
 
         # semester detail cells
-        self.build_field_cell(sheet, row=q_start_row, column=5, value='Semester')
+        self.build_field_cell(sheet, row=current_row, column=5, value='Semester')
 
-        sheet.cell(row=q_start_row, column=6, value=class_course.semester)  # spans 5 columns FGHIJ
-        sheet.merge_cells(start_row=q_start_row, start_column=6, end_row=q_start_row, end_column=10)
+        sheet.cell(row=current_row, column=6, value=class_course.semester)  # spans 5 columns FGHIJ
+        sheet.merge_cells(start_row=current_row, start_column=6, end_row=current_row, end_column=10)
 
         # ==================next row=========================================
 
-        q_start_row += 1
+        current_row += 1
 
         # course code cells
-        self.build_field_cell(sheet, row=q_start_row, column=1, value='Course Code')
+        self.build_field_cell(sheet, row=current_row, column=1, value='Course Code')
 
-        sheet.cell(row=q_start_row, column=2, value=class_course.course.course_code)  # spans 3 columns BCD
-        sheet.merge_cells(start_row=q_start_row, start_column=2, end_row=q_start_row, end_column=4)
+        sheet.cell(row=current_row, column=2, value=class_course.course.course_code)  # spans 3 columns BCD
+        sheet.merge_cells(start_row=current_row, start_column=2, end_row=current_row, end_column=4)
 
         # course title cells
-        self.build_field_cell(sheet, row=q_start_row, column=5, value='Course Title')
+        self.build_field_cell(sheet, row=current_row, column=5, value='Course Title')
 
-        sheet.cell(row=q_start_row, column=6, value=class_course.course.title)  # span 3 columns FGH
-        sheet.merge_cells(start_row=q_start_row, start_column=6, end_row=q_start_row, end_column=8)
+        sheet.cell(row=current_row, column=6, value=class_course.course.title)  # span 3 columns FGH
+        sheet.merge_cells(start_row=current_row, start_column=6, end_row=current_row, end_column=8)
 
         # credit hour cells
-        self.build_field_cell(sheet, row=q_start_row, column=9, value='Credit Hours')
+        self.build_field_cell(sheet, row=current_row, column=9, value='Credit Hours')
 
-        sheet.cell(row=q_start_row, column=10, value=class_course.credit_hours)
+        sheet.cell(row=current_row, column=10, value=class_course.credit_hours)
 
         # =================next row============================================
 
-        q_start_row += 1
+        current_row += 1
 
         # number on roll cells
-        self.build_field_cell(sheet, row=q_start_row, column=1, value='Number of Students')
+        self.build_field_cell(sheet, row=current_row, column=1, value='Number of Students')
 
-        sheet.cell(row=q_start_row, column=2, value=cc_map['number_of_registered_students'])  # spans 3 columns BCD
-        sheet.merge_cells(start_row=q_start_row, start_column=2, end_row=q_start_row, end_column=4)
+        sheet.cell(row=current_row, column=2, value=cc_map['number_of_registered_students'])  # spans 3 columns BCD
+        sheet.merge_cells(start_row=current_row, start_column=2, end_row=current_row, end_column=4)
 
         # respondent cells
-        self.build_field_cell(sheet, row=q_start_row, column=5, value='Number of respondents')
+        self.build_field_cell(sheet, row=current_row, column=5, value='Number of respondents')
 
-        sheet.cell(row=q_start_row, column=6, value=cc_map['number_of_evaluated_students'])
-        sheet.merge_cells(start_row=q_start_row, start_column=6, end_row=q_start_row, end_column=8)
+        sheet.cell(row=current_row, column=6, value=cc_map['number_of_evaluated_students'])
+        sheet.merge_cells(start_row=current_row, start_column=6, end_row=current_row, end_column=8)
 
         # response rate cells
-        self.build_field_cell(sheet, row=q_start_row, column=9, value='Response Rate')
+        self.build_field_cell(sheet, row=current_row, column=9, value='Response Rate')
 
-        sheet.cell(row=q_start_row, column=10, value=cc_map['response_rate'])
+        sheet.cell(row=current_row, column=10, value=cc_map['response_rate'])
 
         # ==================next row=========================================
 
-        q_start_row += 1
+        current_row += 1
 
         # department cells
-        self.build_field_cell(sheet, row=q_start_row, column=1, value='Department')
+        self.build_field_cell(sheet, row=current_row, column=1, value='Department')
 
-        sheet.cell(row=q_start_row, column=2,
+        sheet.cell(row=current_row, column=2,
                    value=class_course.lecturer.department.department_name)  # spans 3 columns BCD
-        sheet.merge_cells(start_row=q_start_row, start_column=2, end_row=q_start_row, end_column=4)
+        sheet.merge_cells(start_row=current_row, start_column=2, end_row=current_row, end_column=4)
 
         # Lecturer rating for course cells
-        self.build_field_cell(sheet, row=q_start_row, column=5, value='Lecturer rating for this course')
+        self.build_field_cell(sheet, row=current_row, column=5, value='Lecturer rating for this course')
 
-        sheet.cell(row=q_start_row, column=6, value=cc_map['lecturer_course_rating'])  # spans 5 columns FGHIJ
-        sheet.merge_cells(start_row=q_start_row, start_column=6, end_row=q_start_row, end_column=10)
+        sheet.cell(row=current_row, column=6, value=cc_map['lecturer_course_rating'])  # spans 5 columns FGHIJ
+        sheet.merge_cells(start_row=current_row, start_column=6, end_row=current_row, end_column=10)
 
         # ==================next row=========================================
 
-        q_start_row += 1
+        current_row += 1
 
         # Course score cell
-        self.build_field_cell(sheet, row=q_start_row, column=1, value='Mean Score')
+        self.build_field_cell(sheet, row=current_row, column=1, value='Mean Score')
 
-        sheet.cell(row=q_start_row, column=2, value=cc_map['grand_mean_score'])  # spans 3 columns BCD
-        sheet.merge_cells(start_row=q_start_row, start_column=2, end_row=q_start_row, end_column=4)
+        sheet.cell(row=current_row, column=2, value=cc_map['grand_mean_score'])  # spans 3 columns BCD
+        sheet.merge_cells(start_row=current_row, start_column=2, end_row=current_row, end_column=4)
 
         # percentage course score cells
-        self.build_field_cell(sheet, row=q_start_row, column=5, value='Percentage Score')
+        self.build_field_cell(sheet, row=current_row, column=5, value='Percentage Score')
 
-        sheet.cell(row=q_start_row, column=6, value=cc_map['grand_percentage'])  # spans 3 columns FGH
-        sheet.merge_cells(start_row=q_start_row, start_column=6, end_row=q_start_row, end_column=8)
+        sheet.cell(row=current_row, column=6, value=cc_map['grand_percentage'])  # spans 3 columns FGH
+        sheet.merge_cells(start_row=current_row, start_column=6, end_row=current_row, end_column=8)
 
         # remarks
-        self.build_field_cell(sheet, row=q_start_row, column=9, value='Remark')
+        self.build_field_cell(sheet, row=current_row, column=9, value='Remark')
 
-        sheet.cell(row=q_start_row, column=10, value=cc_map['remark'])
+        sheet.cell(row=current_row, column=10, value=cc_map['remark'])
+
+
+        #set the row heights for the class_course detail fields
+        for r in range(q_start_row, current_row + 1):
+            report_commons.set_row_height(sheet, r, 0.4, in_inches=True)
+            pass
+
 
         # next row
-        q_start_row += 1
+        current_row += 1
 
         # todo: populating the headers [header title, span]
         headers = [
@@ -456,11 +472,13 @@ class BulkExcelReport:
             'Remark'
         ]
 
-        report_commons.init_header_cells(sheet, headers, row=q_start_row)
+        report_commons.init_header_cells(sheet, headers, row=current_row)
+        report_commons.set_row_height(sheet, current_row, 0.6, in_inches=True)
 
         # for populating the actual categories and questions data
-        q_start_row += 1
-        row = q_start_row
+        current_row += 1
+
+        row = current_row
 
         # get the evaluation
         evaluation_summary = class_course.getEvalDetails()
@@ -487,7 +505,7 @@ class BulkExcelReport:
                 q_mean_score = question_item['mean_score']
                 q_percentage_score = question_item['percentage_score']
 
-                sheet.cell(row=row, column=2, value=question)
+                report_commons.create_cell(sheet, row=row, column=2, value=question)
                 sheet.cell(row=row, column=3, value=q_mean_score)
                 sheet.cell(row=row, column=4, value=q_percentage_score)
 
@@ -516,16 +534,16 @@ class BulkExcelReport:
             pass
 
         # grand mean score
-        sheet.cell(row=q_start_row, column=8, value=cc_map['grand_mean_score'])
-        report_commons.merge_cells(sheet, center=True, start_row=q_start_row, start_column=8, end_row=row, end_column=8)
+        sheet.cell(row=current_row, column=8, value=cc_map['grand_mean_score'])
+        report_commons.merge_cells(sheet, center=True, start_row=current_row, start_column=8, end_row=row, end_column=8)
 
         # grand percentage score
-        sheet.cell(row=q_start_row, column=9, value=cc_map['grand_percentage'])
-        report_commons.merge_cells(sheet, center=True, start_row=q_start_row, start_column=9, end_row=row, end_column=9)
+        sheet.cell(row=current_row, column=9, value=cc_map['grand_percentage'])
+        report_commons.merge_cells(sheet, center=True, start_row=current_row, start_column=9, end_row=row, end_column=9)
 
         # final remark
-        sheet.cell(row=q_start_row, column=10, value=cc_map['remark'])
-        report_commons.merge_cells(sheet, center=True, start_row=q_start_row, start_column=10, end_row=row, end_column=10)
+        sheet.cell(row=current_row, column=10, value=cc_map['remark'])
+        report_commons.merge_cells(sheet, center=True, start_row=current_row, start_column=10, end_row=row, end_column=10)
 
         return row  # the last row  after the function operation
 

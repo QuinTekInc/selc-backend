@@ -64,10 +64,27 @@ def set_column_widths(sheet: Worksheet, widths: dict):
     pass
 
 
+def set_row_height(sheet: Worksheet, row:int, height: float, in_inches=False):
+
+    if in_inches:
+        #function to convert the height from inches to pixels
+        height = inch_to_point(height)
+
+    sheet.row_dimensions[row].height = height
+    pass
+
+
+def inch_to_point(num):
+    return num * 72 # convert the number from inches into points (1 inch = 72 points) or (1 point = 1/72 inch)
+
+
 
 def create_cell(work_sheet: Worksheet, row: int, column: int, value=None):
 
     cell = work_sheet.cell(row=row, column=column, value=value)
+
+
+    #align the content or value of cells to right for numbers and to left for strings
 
     if isinstance(value, int) or isinstance(value, float):
         cell.alignment = Alignment(vertical='top', horizontal='right', wrap_text=True)
@@ -104,9 +121,6 @@ def merge_cells(work_sheet: Worksheet, start_row: int, start_column: int, end_ro
 
 
 def saveWorkbook(work_book: Workbook, file_name: str, file_type: str):
-
-    # temp_path = f'/temp/report{file_type}'
-    # work_book.save(temp_path)
 
     file_stream = BytesIO()
     work_book.save(file_stream)
