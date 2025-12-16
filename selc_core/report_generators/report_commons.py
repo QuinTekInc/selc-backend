@@ -120,16 +120,20 @@ def merge_cells(work_sheet: Worksheet, start_row: int, start_column: int, end_ro
 
 
 
-def saveWorkbook(work_book: Workbook, file_name: str, file_type: str):
+def saveWorkbook(work_book: Workbook, file_name: str, file_type: str) -> ReportFile:
 
     file_stream = BytesIO()
     work_book.save(file_stream)
     file_stream.seek(0)
 
     report_file, created = ReportFile.objects.get_or_create(file_name=file_name, file_type=file_type)
-    report_file.file.save(f'{file_name}.{file_type}', ContentFile(file_stream.read()))
-    report_file.save()
+    report_file.file.save(f'{file_name}{file_type}', ContentFile(file_stream.read()))
+
+    if created:
+        report_file.save()
 
     file_stream.close()
 
-    pass
+    return report_file
+
+

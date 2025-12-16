@@ -78,12 +78,20 @@ def createSuperUser(username, password, email, first_name='', last_name=''):
 
 #rename this function to 'buildUserAccountDict'
 def createUserAccountDict(user: User, auth_token = None):
+
+    group = user.groups.first()
+
+    role = group.name if group is not None else None
+
+    if role is None and user.is_superuser:
+        role = 'superuser'
+
     user_map = {
         'username': user.username,
         'first_name': user.first_name,
         'last_name': user.last_name,
         'email': user.email,
-        'is_superuser': user.is_superuser,
+        'role': role,
         'is_active': user.is_active
     }
 

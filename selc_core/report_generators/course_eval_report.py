@@ -338,14 +338,14 @@ class CourseEvalExcelReport:
 
         pass
 
-
+    #saves generated report
+    #returns a ReportFile database object
     def save(self):
         file_name = self.class_course.getSavableReportFileName()
         file_type = '.xlsx'
 
 
-        report_commons.saveWorkbook(self.work_book, file_name, file_type)
-        pass
+        return report_commons.saveWorkbook(self.work_book, file_name, file_type) 
 
 
     pass

@@ -108,21 +108,13 @@ class Student(models.Model):
         at the current instance studied in this current semester and academic year.
         """
 
-        class_courses = ClassCourse.objects.filter(
-            year=datetime.datetime.now().year,
-            semester=GeneralSetting.objects.all().first().current_semester,
-        )
+        general_setting = GeneralSetting.objects.all().first()
 
-        student_classes = []
+        class_courses = ClassCourse.getCurrentClassCourses()
 
-        for class_course in class_courses:
-            try:
-                student_class = StudentClass.objects.get(student=self, class_course=class_course)
-                student_classes.append(student_class)
-            except StudentClass.DoesNotExist:
-                continue
+        student_classes = StudentClass.objects.filter(student=self, class_course__in=class_courses)
 
-        return student_class
+        return student_classes
 
     def getFullName(self):
         return f'{self.user.first_name} {self.user.last_name}'
@@ -350,12 +342,13 @@ class ClassCourse(models.Model):
     course: Course = models.ForeignKey(Course, related_name='cc_course', on_delete=models.CASCADE)
     credit_hours = models.IntegerField(default=3)
     lecturer: Lecturer = models.ForeignKey(Lecturer, related_name='lecturer', on_delete=models.CASCADE)
+    is_accepting_response = models.BooleanField(default=True)
     semester = models.IntegerField(default=1)
     year = models.IntegerField(null=True)
     has_online = models.BooleanField(default=False)
 
     def getSavableReportFileName(self):
-        return f'{self.semester}0{self.year}_{self.course.course_code}_{self.lecturer.getFullName()}.xlsx'
+        return f'{self.year}0{self.semester}_{self.course.course_code}_{self.lecturer.getFullName()}.xlsx'
 
     #this methods lists all the ClassCourses offered in an academic year
     @staticmethod
@@ -717,6 +710,7 @@ class ClassCourse(models.Model):
             'lecturer': self.lecturer.toMap(),
             'semester': self.semester,
             'year': self.year,
+            'is_accepting_response': self.is_accepting_response,
             'grand_mean_score': grand_mean_score,
             'grand_percentage': grand_percentage,
             'lecturer_course_rating': self.computeLecturerRatingForCourse(),
@@ -948,10 +942,13 @@ class ReportFile(models.Model):
     def __str__(self):
         return str(self.__repr__())
 
-    def toMap(self):
+    def toMap(self, request = None):
+
+        file_url = request.build_absolute_uri(self.file.url) if self.file and request else None
+
         return {
             'file_name': self.file_name,
             'file_type': self.file_type,
-            'file_url': self.file.path
+            'file_url': file_url
         }
     pass

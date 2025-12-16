@@ -36,12 +36,13 @@ class AdminExcelReport:
         pass
 
 
-
-    def save(self):
+    #saves generated report
+    #returns a ReportFile database object
+    def save(self): 
         general_setting = GeneralSetting.objects.first()
         file_name = f'{self.year}0{self.semester}_admin_report'
         file_type = '.xlsx'
 
-        report_commons.saveWorkbook(self.work_book, file_name=file_name, file_type=file_type)
+        return report_commons.saveWorkbook(self.work_book, file_name=file_name, file_type=file_type)
 
     pass

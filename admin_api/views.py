@@ -22,8 +22,10 @@ from .decorators import requires_superuser, requires_roles
 @requires_superuser
 def getListOfUsers(request):
 
-    users = User.objects.filter(
-        Q(groups__name='superuser') | Q(groups__name='admin') | Q(is_superuser=True)).distinct()
+    # users = User.objects.filter(
+    #     Q(groups__name='superuser') | Q(groups__name='admin') | Q(is_superuser=True)).distinct()
+
+    users = User.objects.all()
 
     users_list_dict: list[dict] = []
 
@@ -183,6 +185,12 @@ def loginAdmin(request):
     token, _ = Token.objects.get_or_create(user=user)
 
     user_dict = createUserAccountDict(user, auth_token=token)  # Ensure token.key, not token object
+
+    #add the general setting to the user dict
+    general_setting = GeneralSetting.objects.first()
+    user_dict['general_setting'] = general_setting.toMap()
+
+
     return Response(user_dict, status=HTTP_200_OK)
 
 
@@ -272,7 +280,7 @@ def generalCurrentStatistics(request):
 
     lecturers_count = Lecturer.objects.count()
 
-    courses_count = Course.objects.count()
+    courses_count = ClassCourse.objects.count()
 
     questions_count = Questionnaire.objects.count()
 
@@ -298,6 +306,34 @@ def generalCurrentStatistics(request):
 def getDepartments(request):
     departments = Department.objects.all()
     return Response([department.toMap() for department in departments])
+
+
+#caching needs to be implemented here.
+@authentication_classes([TokenAuthentication])
+@api_view(['GET'])
+def getClassCourses(request):
+    class_courses = ClassCourse.objects.all().order_by('year', 'semester',)
+    return Response([cc.toMap() for cc in class_courses])
+
+
+@api_view(['POST'])
+def updateClassCourse(request):
+    request_data = request.data
+
+    cc_id = request_data.get('cc_id', None)
+
+    accepting_response = request_data.get('is_accepting_response', None)
+
+    if cc_id is None or accepting_response is None:
+        return Response({"message": 'Bad request made'}, status=HTTP_400_BAD_REQUEST)
+    
+
+    class_course = ClassCourse.objects.get(id=cc_id)
+    class_course.is_accepting_response = accepting_response
+    class_course.save()
+
+    return Response({'message': 'ClassCourse updated'}, status=HTTP_200_OK)
+
 
 
 @api_view(['GET'])

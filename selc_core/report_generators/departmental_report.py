@@ -77,11 +77,13 @@ class DepartmentalExcelReport:
 
         pass
 
+    #saves generated report
+    #returns a ReportFile database object
 
     def save(self):
         file_name = f'{self.year}0{self.semester}_{self.department.getSavableReportFileName()}'
         file_type = '.xlsx'
 
-        report_commons.saveWorkbook(self.work_book, file_name, file_type)
+        return report_commons.saveWorkbook(self.work_book, file_name, file_type)
 
     pass
