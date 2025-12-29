@@ -96,6 +96,8 @@ class Student(models.Model):
     campus = models.CharField(max_length=100, default='Sunyani')
     status = models.CharField(max_length=100, default='Regular')
 
+    #will have to add level
+
     def __repr__(self):
         return self.user.username, f'REF: {self.reference_number}', self.age, self.program
 
@@ -159,7 +161,6 @@ class Lecturer(models.Model):
         return None
 
     def __repr__(self):
-
         return self.user.username, self.getFullName(), self.getDepartmentName()
 
     def __str__(self):
@@ -278,9 +279,9 @@ class Course(models.Model):
 
         total_mean_score = sum(mean_scores)
 
-        course_mean_score = total_mean_score / len(mean_scores)
+        course_mean_score: float = total_mean_score / len(mean_scores) if len(mean_scores) != 0 else 0
 
-        course_percentage = (course_mean_score/5) * 100
+        course_percentage: float = (course_mean_score/ 5) * 100
 
         return course_mean_score, course_percentage
 
@@ -290,7 +291,6 @@ class Course(models.Model):
     def computeOverallCourseMeanScore(self) -> tuple[float, float]:
         #get all the class courses corresponding to this class.
         class_courses = ClassCourse.objects.filter(course=self)
-
         return self.computeMeanScore(class_courses)
 
 
@@ -299,14 +299,62 @@ class Course(models.Model):
         return self.computeMeanScore(class_courses)
 
 
-    def courseInfo():
+
+    def courseInfo(self):
+
+        from admin_api.utils import categoryScoreBasedRemark
+
+        general_setting = GeneralSetting.objects.first()
 
         #lecturers who have handled this course (as class_course)
-        #lecturers currently handling this course
-        #mean_score for the semester
-        #percentage score for the semester
+        class_courses = ClassCourse.objects.filter(course=self)
 
-        return 
+        #total number of classes
+        total_classes = class_courses.count()
+
+        #overall_mean_score and percentage score
+        overall_mean_score, overall_percentage = self.computeMeanScore(class_courses)
+        
+        #overall remark for this [based on overall_average_scores of the classes for this course]
+        overall_remark = categoryScoreBasedRemark(overall_mean_score)
+
+        current_class_courses = class_courses.filter(semester=general_setting.current_semester, year=general_setting.academic_year)
+
+        #lecturers currently handling this course
+        number_of_lecturers = current_class_courses.count()
+
+        #mean_score and percentage score for the semester
+        mean_score, percentage_score = self.computeMeanScore(current_class_courses)
+        
+        #remark of course performance for the semester
+        current_remark = categoryScoreBasedRemark(mean_score)
+
+        #the total number of students currently learning this course
+        students_counts: list[tuple] = [class_course.getNumberOfRegisteredStudents() for class_course in current_class_courses]
+
+        registered_students_count = sum([student_count[0] for student_count in students_counts])
+        evaluated_students_count = sum([student_count[1] for student_count in students_counts])
+
+        response_rate = (evaluated_students_count / registered_students_count) * 100 if registered_students_count != 0  else 0
+
+        course_info_map = {
+            'total_classes': total_classes,
+            'overall_mean_score': float(overall_mean_score), 
+            'overall_percentage_score': overall_percentage,
+            'overall_remark': overall_remark,
+            'c_number_of_lecturers': number_of_lecturers,
+            'c_mean_score': mean_score, 
+            'c_percentage_score': percentage_score,
+            'remark': current_remark, 
+            'registered_students': registered_students_count, 
+            'evaluated_students': evaluated_students_count,
+            'response_rate': response_rate,
+            'cummulative_class_courses': [class_course.toMap() for class_course in class_courses],
+            'current_class_courses': [class_course.toMap() for class_course in current_class_courses],
+        }
+
+
+        return course_info_map
 
     def toMap(self):
         from .core_utils import getScoreRemark
@@ -334,9 +382,8 @@ class Course(models.Model):
     pass
 
 
-#the course to be studied for particular class
 
-
+#assigns courses to lecturers for a particular semester and academic year
 class ClassCourse(models.Model):
     id = models.AutoField(primary_key=True)
     course: Course = models.ForeignKey(Course, related_name='cc_course', on_delete=models.CASCADE)
@@ -371,6 +418,7 @@ class ClassCourse(models.Model):
         ratings_sum = sum([rating.rating for rating in ratings])
 
         return ratings_sum / len(ratings)
+        
 
     #the mean score for the course.
     def computeGrandMeanScore(self) -> tuple:
@@ -757,6 +805,7 @@ class StudentClass(models.Model):
             'course_code': course.course_code,
             'course_title': course.title,
             'credit_hours': self.class_course.credit_hours,
+            'is_accepting_response': self.class_course.is_accepting_response,
             'lecturer': lecturer.getFullName(),
             'department': lecturer.department.department_name,
             'evaluated': self.evaluated,
@@ -885,6 +934,8 @@ class EvaluationSuggestion(models.Model):
     pass
 
 
+
+
 #the part where students rate a lecturer for a particular class_course
 class LecturerRating(models.Model):
     id = models.BigAutoField(primary_key=True)
@@ -894,6 +945,7 @@ class LecturerRating(models.Model):
 
     def __str__(self):
         return f'Lecturer Rating({self.id}, {self.class_course.lecturer.name}, RATING: {self.rating}, (course: {self.class_course.course.course_code}))'
+
 
 
 #handle if a student had completed an evaluation for a particular class_course.
@@ -928,6 +980,8 @@ class EvaluationStatus(models.Model):
     pass
 
 
+
+#the report file model
 class ReportFile(models.Model):
     id = models.AutoField(primary_key=True, unique=True)
     file_name = models.TextField()

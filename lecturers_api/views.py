@@ -58,6 +58,7 @@ def loginLecturer(request):
         'department': lecturer.department.department_name,
         'rating': lecturer.computeLecturerOverallAverageRating(),
         'current_semester': general_setting.current_semester,
+        'current_year': general_setting.academic_year,
         'enable_evaluations': general_setting.enable_evaluations
     }
     
@@ -140,3 +141,17 @@ def getEvaluationSuggestions(request, cc_id):
 
 
 
+@api_view(['GET'])
+def getDashboardGraphData(request):
+
+    user = request.user
+
+    lecturer = Lecturer.objects.get(user=user)
+
+    class_courses = ClassCourse.getCurrentClassCourses().filter(lecturer=lecturer)
+
+    from selc_core.core_utils import  create_classes_chart_info
+
+    chart_data = create_classes_chart_info(class_courses)
+
+    return Response(chart_data)

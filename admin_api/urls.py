@@ -17,6 +17,7 @@ urlpatterns = [
 
     #todo: dashboard urls
     path('general-current-stats/', views.generalCurrentStatistics),
+    path('dashboard-graph-data/', views.getDashboardGraphData), 
     path('lecturers-ratings-rank/', views.getLecturersRatings),
     path('courses-ratings-rank/', views.getCourseRatings),
 
@@ -26,7 +27,7 @@ urlpatterns = [
     path('update-general-settings/', views.updateSetting),
 
     path('get-class-courses/', views.getClassCourses),
-    path('update-class-course/', views.updateClassCourse),
+    path('update-class-course/<int:cc_id>', views.updateClassCourse),
     
     path('get-all-current-class-courses/', views.getCurrentClassCourses),
                                         #todo: change to sentiment summary
@@ -41,7 +42,7 @@ urlpatterns = [
     path('lecturer-info/<str:username>', views.getLecturerInformation),
     path('overall-lrating-summary/<str:username>', views.getOverallLecturerRatingSummary),
     path('yearly-average-lrating-summary/<str:username>', views.getYearlyLecturerRatingSummary),
-    path('course-info/<str:course_code>', views.getCourseInformation),
+    path('course-info/<str:course_code>', views.getCourseInfo),
 
     #todo: ClassCourse evaluation information
     path('class-course-eval-summary/<int:cc_id>', views.getClassCourseEvalSummary),
@@ -54,8 +55,8 @@ urlpatterns = [
 
     #todo: requstionnaire categories
     path('add-category/', views.addCategory),
-    path('update-category/<int:category_id>/', views.updateCategory),
-    path('delete-category/<int:category_id>/', views.deleteCategory),
+    path('update-category/<int:category_id>', views.updateCategory),
+    path('delete-category/<int:category_id>', views.deleteCategory),
 
 
     #todo: questionnaires and the questionnaire
