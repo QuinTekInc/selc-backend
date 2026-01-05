@@ -395,7 +395,7 @@ class ClassCourse(models.Model):
     has_online = models.BooleanField(default=False)
 
     def getSavableReportFileName(self):
-        return f'{self.year}0{self.semester}_{self.course.course_code}_{self.lecturer.getFullName()}.xlsx'
+        return f'{self.year}0{self.semester}_{self.course.course_code}_{self.lecturer.getFullName()}'
 
     #this methods lists all the ClassCourses offered in an academic year
     @staticmethod
@@ -537,14 +537,14 @@ class ClassCourse(models.Model):
 
     def getQuestionAnswerSummary(self, question, utils) -> dict:
 
-        from selc_core import core_utils
+        from . import core_utils as utils
 
         evaluations = Evaluation.objects.filter(question=question, class_course=self).values_list('answer', flat=True)
         answer_summary = dict(Counter(evaluations))
 
         #some possible answers may not be found so we add them manually to the dictionary
         #and set their counts to zero
-        possible_answers = core_utils.ANSWER_TYPE_DICT.get(question.answer_type.lower(), [])
+        possible_answers = utils.ANSWER_TYPE_DICT.get(question.answer_type.lower(), [])
 
         for possible_answer in possible_answers:
             if possible_answer in answer_summary:
@@ -582,7 +582,7 @@ class ClassCourse(models.Model):
         # update the dictionary
         question_eval_dict['mean_score'] = mean_answer_score
         question_eval_dict['percentage_score'] = percentage_score
-        question_eval_dict['remark'] = utils.categoryScoreBasedRemark(mean_answer_score)
+        question_eval_dict['remark'] = utils.getScoreRemark(mean_answer_score)
 
         return question_eval_dict
 
@@ -618,7 +618,7 @@ class ClassCourse(models.Model):
         ]
         """
 
-        from admin_api import utils
+        from . import core_utils as utils
 
         #get the categories
         categories = QuestionCategory.objects.all()
@@ -651,7 +651,7 @@ class ClassCourse(models.Model):
 
             cat_map['mean_score'] = cat_mean_score
             cat_map['percentage_score'] = cat_percentage_score
-            cat_map['remark'] = utils.categoryScoreBasedRemark(cat_mean_score)
+            cat_map['remark'] = utils.getScoreRemark(cat_mean_score)
 
 
             questions_list = []
@@ -673,7 +673,7 @@ class ClassCourse(models.Model):
     #todo: remake this method to "getQuestionnaireCategoriesSummary"
     def getEvalQuestionCategoryRemarks(self, include_questions=False) -> list[dict]:
 
-        from admin_api import utils
+        from . import core_utils as utils
 
         #get all the questionnaire categories from the database
         categories = QuestionCategory.objects.all()
@@ -721,7 +721,7 @@ class ClassCourse(models.Model):
                 'category': category.cat_name,
                 'percentage_score': percentage_score,
                 'average_score': cat_average_score,
-                'remark': utils.categoryScoreBasedRemark(cat_average_score)
+                'remark': utils.getScoreRemark(cat_average_score)
             }
 
             if include_questions:

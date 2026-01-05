@@ -9,6 +9,8 @@ from io import BytesIO
 from django.core.files.base import ContentFile
 from selc_core.models import ReportFile
 
+from django.db.transaction import  atomic as atomic_transaction
+
 
 
 
@@ -126,14 +128,40 @@ def saveWorkbook(work_book: Workbook, file_name: str, file_type: str) -> ReportF
     work_book.save(file_stream)
     file_stream.seek(0)
 
-    report_file, created = ReportFile.objects.get_or_create(file_name=file_name, file_type=file_type)
-    report_file.file.save(f'{file_name}{file_type}', ContentFile(file_stream.read()))
+    content_file = ContentFile(file_stream.read())
 
-    if created:
-        report_file.save()
+    with atomic_transaction():
+        report_file, created = ReportFile.objects.update_or_create(file_name=file_name, file_type=file_type)
 
+        if not created:
+            report_file.file.delete(save=False)
+
+        report_file.file.save(f'{file_name}{file_type}', content_file)
+
+    content_file.close()
     file_stream.close()
 
+    return report_file
+
+
+
+
+def savePdf(file_stream: BytesIO, file_name: str, file_type: str) -> ReportFile:
+
+
+    content_file = ContentFile(file_stream.read())
+
+    with atomic_transaction():
+        report_file, created = ReportFile.objects.update_or_create(file_name=file_name, file_type=file_type)
+
+        if not created:
+            report_file.file.delete(save=False)
+
+        report_file.file.save(f'{file_name}{file_type}', content_file)
+
+    content_file.close()
+    file_stream.close()
+        
     return report_file
 
 

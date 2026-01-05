@@ -862,51 +862,11 @@ def getCourseRatings(request):
 @requires_roles(['superuser', 'admin'])
 def getDashboardGraphData(request):
 
+    from selc_core.core_utils import create_classes_chart_info
+
     class_courses = ClassCourse.getCurrentClassCourses()
 
-    #overall response rate for the current semester
-    total_students_tup = [cc.getNumberOfRegisteredStudents() for cc in class_courses]
-
-    total_students = sum([std_tup[0] for std_tup in total_students_tup]) #should be total registrations
-    evaluated_students = sum([std_tup[1] for std_tup in total_students_tup]) #should be evaluated registrations
-
-    response_rate = (evaluated_sutdents / total_students) if total_students != 0 else 0
-
-
-    reg_map = {
-        'total_registrations': total_students,
-        'evaluated_registrations': evaluated_students,
-        'response_rate': response_rate
-    }
-
-
-    #overall lecturer ratings for each course in the current semester
-    lecturer_ratings = LecturerRating.objects.filter(class_course__in=class_courses)
-
-    lrating_map = {}
-
-    for rating in range(5, -1, -1):
-        lrating_map[rating] = lecturer_ratings.filter(rating=rating).count()
-        pass
-
-
-    #overall suggestion sentiments
-    suggestions = EvaluationSuggestion.objects.filter(class_course__in=class_courses)
-
-    sentiments_map = {}
-
-    for sentiment in ['negative', 'neutral', 'positive']:
-        sentiment_map[sentiment] = suggestions.filter(sentiment=sentiment).count()
-        pass
-
-
-    dashboard_data = {
-        'registration_summary': reg_map,
-        'lecturer_rating': lrating_map,
-        'sentiment_summary': sentiments_map
-    }
-
-
+    dashboard_graph_data = create_classes_chart_info(class_courses)
     return Response(dashboard_data)
 
 

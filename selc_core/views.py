@@ -1,10 +1,11 @@
-from django.shortcuts import render
-from django.http import HttpResponse, FileResponse
 
+from django.http import FileResponse
 from django.contrib.auth.models import Group
+from django.db.models import Q as Query
 
 from admin_api.decorators import requires_roles
 from .models import Department, ClassCourse, ReportFile, GeneralSetting
+from .models import Lecturer
 
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
@@ -21,15 +22,16 @@ def generate_report(request):
     """
     {
         'report_type': 'admin' or 'department' or 'class_course',
-        'id': cc_id or department_id   note that admin reports do not require id's.
-        'semester': academic_semester
-        'year': academic_year
+        'id': cc_id or department_id   note that admin reports do not require id's,
+        'semester': academic_semester,
+        'year': academic_year,
+        'file_type: '.pdf' or '.xlsx' (default is '.xlsx')
     }
     """
 
     request_data = request.data 
 
-    report_type = request.data.get('report_type', None)
+    report_type = request_data.get('report_type', None)
 
     if report_type not in ['class_course', 'department', 'admin']:
         return Response({'message': 'Specify Report Type'}, status=HTTP_400_BAD_REQUEST)
@@ -44,6 +46,9 @@ def generate_report(request):
     ys_prefix = f'{academic_year}0{semester}'
 
 
+    file_type = request_data.get('file_type', '.xlsx')
+
+
     report = None
 
     if report_type == 'class_course':
@@ -55,6 +60,10 @@ def generate_report(request):
 
         report = course_eval_report.CourseEvalExcelReport(class_course)
 
+        #note that PDF report is exclusive to only Class Course Evaluations. 
+        if file_type == '.pdf': 
+            report = course_eval_report.CourseEvalPdfReport(class_course)
+
         pass
 
     elif report_type == 'department':
@@ -62,7 +71,7 @@ def generate_report(request):
 
         try:
             department = Department.objects.get(id=request_data.get('id', None))
-        except Department.DeosNotExist:
+        except Department.DoesNotExist:
             return Response({'message': 'Requested Department does not exist'})
 
         report = departmental_report.DepartmentalExcelReport(department, semester=semester, year=academic_year)
@@ -101,19 +110,28 @@ def get_all_files(request): #should be renamed to get files
 
     user = request.user
 
-    if user == None: 
-        return Response({'message': 'Your request is forbidden'}, status=HTTP_403_FORBIDDEN)
+    if user is None: 
+        return Response({'message': 'Login required'}, status=HTTP_403_FORBIDDEN)
 
     #check the role of the user
-    group = user.groups.filter(name='lecturer')
+    lecturer = Lecturer.objects.filter(user=user)
 
-    if group.exists():
+    if lecturer.exists():
 
-        lecturer = lecturer.objects.get(user=user)
+        lecturer = lecturer.first()
         l_class_courses = ClassCourse.objects.filter(lecturer=lecturer)
 
-        report_files = ReportFile.objects.filter(
-            file_name__in=[cc.getSavableReportFileName() for cc in l_class_courses])
+        cc_file_names = [cc.getSavableReportFileName() for cc in l_class_courses]
+        
+        reduced_file_names = [fccn[0: fccn.rindex('.')] for fccn in cc_file_names]
+
+        file_names = cc_file_names + reduced_file_names#if the file name contains the lecturer's name.
+
+        query = (Query(file_name__in=file_names) | Query(file_name__icontains=lecturer.getFullName()))
+            
+        report_files = ReportFile.objects.filter(query)
+
+        #print('REPORT FILES FOUND FOR LECTURER: ', report_files.count())
         
         return Response([report_file.toMap(request) for report_file in report_files])
 
@@ -121,6 +139,8 @@ def get_all_files(request): #should be renamed to get files
     report_files = ReportFile.objects.all()
     
     return Response([report_file.toMap(request) for report_file in report_files])
+
+
 
 
 
