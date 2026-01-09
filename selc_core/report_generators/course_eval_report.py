@@ -363,11 +363,14 @@ from reportlab.platypus import (
     Table,
     Spacer,
     PageBreak,
+    Image
 )
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.enums import TA_LEFT
 from reportlab.lib import colors
+
+from pathlib import Path
 
 
 class CourseEvalPdfReport:
@@ -375,6 +378,7 @@ class CourseEvalPdfReport:
     GRID_COLOR = colors.lightgrey
 
     def __init__(self, class_course: ClassCourse):
+
         self.class_course = class_course
         self.file_buffer = BytesIO()
         self.styles = getSampleStyleSheet()
@@ -454,8 +458,10 @@ class CourseEvalPdfReport:
     # ------------------------------------------------------------------
     def report_header(self):
 
+        logo_path = f'{Path(__file__).parent}/UENR-Logo.png'
+
         #todo: add the university logo to the left side of the header
-        #logo = None
+        logo = Image(logo_path, width=60, height=60)
 
         text = [
             Paragraph("<b>University of Energy and Natural Resources</b>", self.styles["Title"]),
@@ -464,7 +470,7 @@ class CourseEvalPdfReport:
         ]
 
         #todo: replace the empty string with the logo image when available
-        table = Table([["", text]], colWidths=[70, 450])
+        table = Table([[logo, text]], colWidths=[70, 450])
         table.setStyle([("VALIGN", (0, 0), (-1, -1), "TOP")])
         self.story.extend([table, Spacer(1, 16)])
 
@@ -488,21 +494,31 @@ class CourseEvalPdfReport:
     def course_information(self):
         self.section("Course Information and Evaluation Overview")
 
-        registered, evaluated = self.class_course.getNumberOfRegisteredStudents()
-        response_rate = (evaluated / registered) * 100 if registered else 0
-        mean, percent = self.class_course.computeGrandMeanScore()
+        cc_map = self.class_course.toMap()
+
+        registered_students = cc_map['number_of_registered_students']
+        evaluated_students = cc_map['number_evaluated_students']
+        
+        response_rate = (evaluated_students/registered_students) * 100 if registered_students > 0 else 0
+
+
 
         rows = [
+            ('FIELD', 'VALUE'), #this is the table header
             ("Lecturer", self.class_course.lecturer.getFullName()),
             ("Department", self.class_course.lecturer.department.department_name),
             ("Email", self.class_course.lecturer.user.email),
             ("Course Code", self.class_course.course.course_code),
             ("Course Title", self.class_course.course.title),
-            ("Registered Students", registered),
-            ("Evaluated Students", evaluated),
+            ('Credit Hours:', self.class_course.credit_hours),
+            ('Semester', cc_map['semester']),
+            ("Year", cc_map['year']),
+            ("Registered Students", registered_students),
+            ("Evaluated Students", evaluated_students),
             ("Response Rate", f"{response_rate:.2f}%"),
-            ("Course Mean Score", mean),
-            ("Course Percentage Score", percent),
+            ("Course Mean Score", cc_map['grand_mean_score']),
+            ("Course Percentage Score", cc_map['grand_percentage']),
+            ('Remrk', cc_map['remark'])
         ]
 
         data = [

@@ -45,6 +45,7 @@ class GeneralSetting(models.Model):
     def toMap(self) -> dict:
         return {
             'current_semester': self.current_semester,
+            'academic_year': self.academic_year,
             'enable_evaluations': self.enable_evaluations
         }
 
@@ -441,7 +442,7 @@ class ClassCourse(models.Model):
         #get the answers for to each questionnaire for this class_course, convert the answer to a value in the scale of 1-5,
         #collect them a list and find the total sum of all the values.
         total_performance_score = sum(
-            [ANSWER_SCORE_DICT.get(evaluation.answer, 0) for evaluation in evaluations])
+            [ANSWER_SCORE_DICT.get(evaluation.answer.lower(), 0) for evaluation in evaluations])
 
         #compute the average score.
         grand_mean_score = total_performance_score / total_evaluations
