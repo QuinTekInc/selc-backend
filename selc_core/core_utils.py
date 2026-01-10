@@ -123,6 +123,33 @@ def create_classes_chart_info(class_courses) -> dict:
         pass
 
 
+    '''
+        response format:
+        {
+            'registration_summary':{
+                'total_registrations': int,
+                'evaluated_registrations': int,
+                'response_rate': float
+            },
+
+            'lecturer_rating': {
+                5: int,
+                4: int,
+                3: int,
+                2: int,
+                1: int,
+                0: int
+            },
+
+            'sentiment_summary':{
+                'negative': int,
+                'neutral': int,
+                'positive': int
+            }
+        }
+    '''
+
+
     chart_data = {
         'registration_summary': reg_map,
         'lecturer_rating': lrating_map,
@@ -131,5 +158,6 @@ def create_classes_chart_info(class_courses) -> dict:
 
 
     return chart_data
+
 
 

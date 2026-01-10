@@ -22,28 +22,29 @@ class DashboardGraphConsumer(WebsocketConsumer):
             self.close() 
             pass 
 
-        await self.accept()
+        
+        self.group_name = 'admin_dashboard'
 
-        self.send(
-            text_data=json.dumps({
-                'type': 'connection_status',
-                'mesage': 'Connection established with dasboard consumer'
-            })
-        )
+        self.channel_layer.group_add(self.group_name, self.channel_name)
+        
+        await self.accept()
 
 
     async def disconnect(self, code):
+        self.channel_layer.group_discard( 
+            self.group_name, 
+            self.channel_name
+        )
         pass
 
 
 
     async def receive(self, text_data=None, byte_data=None):
-
-        data = json.loads(text_data)
-
-        # Process the received data and send a response if needed
-
-        await self.send(text_data=json.dumps({
-            'message': 'Data received',
-            'data': data
-        }))
+        #nothing to receive here.
+        pass
+    
+    def admin_dashoard_event(self, event):
+        self.send(text_data=json.dumps(
+            event['data']
+        ))
+        pass

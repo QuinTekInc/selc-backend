@@ -172,13 +172,19 @@ def submitEvaluationData(request):
     student_class.evaluated = True
     student_class.save()
 
-    return Response({'message': 'Your evaluation has been saved to the SELC server'})
+
+    #when everything has been successful
+    import admin_api.utils
+    admin_api.utils.trigger_admin_dashboard_update()
+    admin_api.utils.trigger_lecturer_dashboard_update(class_course.lecturer)
+
+    return Response({'message': 'Your evaluation has been saved.'})
 
 
 
 @api_view(['GET'])
 @authentication_classes([TokenAuthentication])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def getEvaluationForCourse(request, cc_id):
 
     student = Student.objects.get(user=request.user)

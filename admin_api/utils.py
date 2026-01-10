@@ -6,54 +6,10 @@ from selc_core.models import Course
 from selc_core.models import LecturerRating
 
 from rest_framework.response import Response
+import selc_core.core_utils
 
-ANSWER_SCORE_DICT = {
-
-    #for performance
-    'excellent': 5,
-    'very good': 4,
-    'good': 3,
-    'average': 2,
-    'bad': 1,
-    'poor': 1,
-
-    #for time
-    'always': 5,
-    'very often': 4,
-    'sometimes': 3,
-    'rarely': 2,
-    'bever': 1,
-
-    #for yes no questions
-    'yes': 5,
-    'no': 1,
-
-
-    #for when the user gave No answer
-    'no answer': 0
-}
-
-
-
-
-def categoryScoreBasedRemark(score: float):
-
-    if score >= 0 and score <= 1.99:
-        return 'Poor'
-
-    elif score >= 2 and score <= 2.99:
-        return 'Average'
-
-    elif score >= 3 and score <= 3.5:
-        return 'Good'
-
-    elif score >= 3.6 and score <= 4.5:
-        return 'Very Good'
-
-    elif score >= 4.6 and score <= 5:
-        return 'Excellent'
-
-    return "Remark not found"
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 
 
@@ -212,7 +168,7 @@ def buildCourseRateMap(course: Course, class_courses: list[ClassCourse]) -> dict
 
     course_rate_map['parameter_mean_score'] = parameter_mean_score
     course_rate_map['percentage_score'] = percentage_score
-    course_rate_map['remark'] = categoryScoreBasedRemark(parameter_mean_score)
+    course_rate_map['remark'] = selc_core.core_utils.getScoreRemark(parameter_mean_score)
     course_rate_map['number_of_lecturers'] = number_of_lecturers
     course_rate_map['number_of_students'] = number_of_students
     course_rate_map['number_of_evaluated_students'] = number_of_evaluated_students
@@ -278,5 +234,39 @@ def groupQuestionAnswerSummary(class_courses) -> dict:
 
 
 
+def trigger_admin_dashboard_update():
+
+    class_courses = ClassCourse.getCurrentClassCourses()
+
+    dashboard_data = selc_core.core_utils.create_classes_chart_info(class_courses)
+
+    channel_layer = get_channel_layer()
+
+    async_to_sync(channel_layer.group_send)(
+        'admin_dashboard', #channels group name
+        {
+            "type": 'admin_dashboard_event',
+            'data': dashboard_data
+        }
+    )
+
+    pass
 
 
+
+def trigger_lecturer_dashboard_update(lecturer: Lecturer):
+
+    class_courses = ClassCourse.objects.filter(lecturer=lecturer)
+    dashboard_data = selc_core.core_utils.create_classes_chart_info(class_courses)
+
+    channel_layer = get_channel_layer()
+
+    async_to_sync(channel_layer.group_send)(
+        f'lecturer_dashboard_{lecturer.user.username}', #channels group name
+        {
+            "type": 'lecturer_dashboard_event',
+            'data': dashboard_data
+        }
+    )
+
+    pass
