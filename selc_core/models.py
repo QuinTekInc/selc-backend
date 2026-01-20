@@ -240,10 +240,10 @@ class Lecturer(models.Model):
 
     def toMap(self):
 
-        from admin_api import utils
+        from .core_utils import getScoreRemark
 
         rating = self.computeLecturerOverallAverageRating()
-        remark = utils.categoryScoreBasedRemark(rating)
+        remark = getScoreRemark(rating)
 
         return {
             'username': self.user.username,
@@ -391,6 +391,7 @@ class ClassCourse(models.Model):
     credit_hours = models.IntegerField(default=3)
     lecturer: Lecturer = models.ForeignKey(Lecturer, related_name='lecturer', on_delete=models.CASCADE)
     is_accepting_response = models.BooleanField(default=True)
+    level = models.CharField(max_length=4, default='')
     semester = models.IntegerField(default=1)
     year = models.IntegerField(null=True)
     has_online = models.BooleanField(default=False)
@@ -417,8 +418,9 @@ class ClassCourse(models.Model):
             return 0
 
         ratings_sum = sum([rating.rating for rating in ratings])
+        average_rating = ratings_sum / len(ratings)
 
-        return ratings_sum / len(ratings)
+        return average_rating
         
 
     #the mean score for the course.
@@ -451,21 +453,29 @@ class ClassCourse(models.Model):
 
         return grand_mean_score, grand_percentage_score
 
+
+    #returns the list program_classes(students program) to which this class course is taught
+    def getListOfProgramsInClass(self) -> list:
+        unique_programs = list(
+            StudentClass.objects.filter(class_course=self,)
+            .values_list('student__program', flat=True)
+            .distinct()
+        )
+        return unique_programs
+
+
     #method fo compute the number of students who have registered for the course
     def getNumberOfRegisteredStudents(self) -> tuple[int, int]:
-        student_classes = StudentClass.objects.filter(class_course=self)
+        students_classes = StudentClass.objects.filter(class_course=self)
 
-        if not student_classes.exists():
+        if not students_classes.exists():
             return (0, 0)
 
-        total_student_count = len(student_classes)
+        registered_students = students_classes.count()
 
-        #filter those who have evaluated
-        evaluated_count = len(list(
-            filter(lambda student_class: student_class.evaluated, student_classes)
-        ))
+        evaluated_count = students_classes.filter(evaluated=True).count()
 
-        return (total_student_count, evaluated_count)
+        return (registered_students, evaluated_count)
 
 
     #todo: rename this method to "getLecturerRating"
@@ -536,12 +546,13 @@ class ClassCourse(models.Model):
             }
 
 
-    def getQuestionAnswerSummary(self, question, utils) -> dict:
+    def getQuestionAnswerSummary(self, question: str, evaluations=None) -> dict:
 
         from . import core_utils as utils
 
-        evaluations = Evaluation.objects.filter(question=question, class_course=self).values_list('answer', flat=True)
-        answer_summary = dict(Counter(evaluations))
+        question_asnwers = evaluations.values_list('answer', flat=True)
+
+        answer_summary = dict(Counter(question_answers))
 
         #some possible answers may not be found so we add them manually to the dictionary
         #and set their counts to zero
@@ -556,13 +567,12 @@ class ClassCourse(models.Model):
 
 
         question_eval_dict = {
-            'question': question.question,
+            'question': question,
             'answer_type': question.answer_type,
             'answer_summary': answer_summary,
         }
 
         total_evaluations = evaluations.count()
-        # max_answer_score = 5 * len(evaluations)
         total_answer_score = 0
 
         for possible_answer, count in answer_summary.items():
@@ -590,7 +600,7 @@ class ClassCourse(models.Model):
 
 
     #todo: rename this to "getQuestionnaireAnswerSummary"
-    def getEvalDetails(self) -> list[dict]:
+    def getEvalDetails(self, evaluations=None) -> list[dict]:
 
         #data is returned the format below
         """
@@ -621,6 +631,10 @@ class ClassCourse(models.Model):
 
         from . import core_utils as utils
 
+        #get the evaluations 
+        if evaluations is None: 
+            evaluations = Evaluation.objects.filter(class_course=self)
+
         #get the categories
         categories = QuestionCategory.objects.all()
 
@@ -634,11 +648,12 @@ class ClassCourse(models.Model):
             }
 
             #get the questions
-            questions = Questionnaire.objects.filter(category=category)
+            questionnaires = Questionnaire.objects.filter(category=category)
 
             #get the answers to the list of questions under the category
             #the goal is to calculate the mean and percentage scores of the category
-            evaluation_answers = Evaluation.objects.filter(class_course=self, question__in=questions).values_list('answer', flat=True)
+
+            evaluation_answers = evaluations.filter(question__in=questionnaires).values_list('answer', flat=True)
 
             total_answer_score = sum([utils.ANSWER_SCORE_DICT.get(answer.lower(), 0) for answer in evaluation_answers])
 
@@ -657,8 +672,9 @@ class ClassCourse(models.Model):
 
             questions_list = []
 
-            for question in questions:
-                question_answer_summary = self.getQuestionAnswerSummary(question, utils)
+            for questionnaire in questionnaires:
+                question_evaluations = evaluations.filter(question=question)
+                question_answer_summary = self.getQuestionAnswerSummary(questionnaire.question, question_evaluations)
                 questions_list.append(question_answer_summary)
                 pass
 
@@ -670,11 +686,25 @@ class ClassCourse(models.Model):
         return cat_list
 
 
+    def getEvalDetailsByProgram(self, program):
+        program_students = self.registerations.filter(student__program=program)
+
+        evaluations = Evaluation.objects.filter(class_course=self, student__in=program_students)
+
+        return self.getEvalDetails(evaluations)
+
+
+    def getOverallEvalDetails(self):
+        return self.getOverallEvalDetails()
+
+
 
     #todo: remake this method to "getQuestionnaireCategoriesSummary"
     def getEvalQuestionCategoryRemarks(self, include_questions=False) -> list[dict]:
 
         from . import core_utils as utils
+
+        evaluations = Evaluation.objects.filter(class_course=self)
 
         #get all the questionnaire categories from the database
         categories = QuestionCategory.objects.all()
@@ -692,7 +722,7 @@ class ClassCourse(models.Model):
             #iterate through the filtered questions
             for question in cat_questions:
                 #get the evaluation answers for the question at the current iteration
-                evaluations = Evaluation.objects.filter(question=question, class_course=self)
+                question_evaluations = evaluations.filter(question=question)
 
                 if len(evaluations) == 0:
                     continue
@@ -747,6 +777,7 @@ class ClassCourse(models.Model):
 
         remark = getScoreRemark(grand_mean_score)
 
+        programs = self.getListOfProgramsInClass()
         registered_students_count, evaluated_students_count = self.getNumberOfRegisteredStudents()
 
         response_rate = (evaluated_students_count / registered_students_count) * 100
@@ -757,6 +788,7 @@ class ClassCourse(models.Model):
             'has_online': self.has_online,
             'course': self.course.toMap(),
             'lecturer': self.lecturer.toMap(),
+            'level': self.level,
             'semester': self.semester,
             'year': self.year,
             'is_accepting_response': self.is_accepting_response,
@@ -766,7 +798,8 @@ class ClassCourse(models.Model):
             'number_of_registered_students': registered_students_count,
             'number_of_evaluated_students': evaluated_students_count,
             'response_rate': response_rate,
-            'remark': remark
+            'remark': remark,
+            'programs': programs
         }
 
     pass
@@ -776,8 +809,8 @@ class ClassCourse(models.Model):
 #todo: rename this model or class to "RegisteredClass"
 class StudentClass(models.Model):
     id = models.AutoField(primary_key=True)
-    student: Student = models.ForeignKey(Student, related_name='student', on_delete=models.CASCADE)
-    class_course: ClassCourse = models.ForeignKey(ClassCourse, related_name='class_course', on_delete=models.CASCADE)
+    student: Student = models.ForeignKey(Student, related_name='registerations', on_delete=models.CASCADE)
+    class_course: ClassCourse = models.ForeignKey(ClassCourse, related_name='registerations', on_delete=models.CASCADE)
     evaluated = models.BooleanField(default=False)
 
     def __str__(self):
@@ -798,6 +831,7 @@ class StudentClass(models.Model):
         return counter
 
     def toMap(self) -> dict:
+
         course: Course = self.class_course.course
         lecturer: Lecturer = self.class_course.lecturer
 
@@ -841,7 +875,7 @@ class QuestionCategory(models.Model):
 #the questions class
 class Questionnaire(models.Model):
     q_id = models.AutoField(primary_key=True)
-    category: QuestionCategory = models.ForeignKey(QuestionCategory, related_name='question_category',
+    category: QuestionCategory = models.ForeignKey(QuestionCategory, related_name='questionnaires',
                                                    on_delete=models.CASCADE)
     question = models.TextField(default='')
     answer_type = models.CharField(max_length=20, default='yes_no')  #"yes_no", "performance", "time"
@@ -867,9 +901,9 @@ class Questionnaire(models.Model):
 class Evaluation(models.Model):
     answer_id = models.AutoField(primary_key=True)
     student: Student = models.ForeignKey(Student, on_delete=models.CASCADE)
-    class_course: ClassCourse = models.ForeignKey(ClassCourse, related_name='eval_class_course',
+    class_course: ClassCourse = models.ForeignKey(ClassCourse, related_name='evaluations',
                                                   on_delete=models.CASCADE)
-    question: Questionnaire = models.ForeignKey(Questionnaire, related_name='eval_questionnaire',
+    question: Questionnaire = models.ForeignKey(Questionnaire, related_name='evaluations',
                                                 on_delete=models.CASCADE)
     answer = models.TextField(default='')
 
@@ -888,8 +922,8 @@ class SentimentChoices(models.TextChoices):
 
 class EvaluationSuggestion(models.Model):
     id = models.AutoField(primary_key=True)
-    student: Student = models.ForeignKey(Student, related_name='s_student', on_delete=models.CASCADE)
-    class_course: ClassCourse = models.ForeignKey(ClassCourse, related_name='s_class_course', on_delete=models.CASCADE)
+    student: Student = models.ForeignKey(Student, related_name='evaluation_suggestions', on_delete=models.CASCADE)
+    class_course: ClassCourse = models.ForeignKey(ClassCourse, related_name='evaluation_suggestions', on_delete=models.CASCADE)
     suggestion = models.TextField(default='')
     sentiment = models.CharField(max_length=20, default='neutral', choices=SentimentChoices.choices)
 
@@ -940,45 +974,13 @@ class EvaluationSuggestion(models.Model):
 #the part where students rate a lecturer for a particular class_course
 class LecturerRating(models.Model):
     id = models.BigAutoField(primary_key=True)
-    student = models.ForeignKey(Student, related_name='lr_student', on_delete=models.CASCADE)
-    class_course: ClassCourse = models.ForeignKey(ClassCourse, related_name='lr_cc', on_delete=models.CASCADE)
+    student = models.ForeignKey(Student, related_name='lecturer_rating', on_delete=models.CASCADE)
+    class_course: ClassCourse = models.ForeignKey(ClassCourse, related_name='lecturer_rating', on_delete=models.CASCADE)
     rating = models.IntegerField(default=0)
 
     def __str__(self):
         return f'Lecturer Rating({self.id}, {self.class_course.lecturer.name}, RATING: {self.rating}, (course: {self.class_course.course.course_code}))'
 
-
-
-#handle if a student had completed an evaluation for a particular class_course.
-class EvaluationStatus(models.Model):
-    id = models.AutoField(primary_key=models.CASCADE)
-    student: Student = models.ForeignKey(Student, related_name='es_student', on_delete=models.CASCADE)
-    class_course: ClassCourse = models.ForeignKey(ClassCourse, related_name='es_class_course', on_delete=models.CASCADE)
-    status = models.BooleanField(default=False)
-
-    @staticmethod
-    def countClassCoursesFor(year: int, semester: int) -> int:
-        class_courses = ClassCourse.objects.filter(year=year, semester=semester)
-
-        if len(class_courses) == 0:
-            return 0
-
-        number_of_evaluations = 0
-
-        for class_course in class_courses:
-            eval_status = EvaluationStatus.objects.filter(class_course=class_course)
-            number_of_evaluations += len(eval_status)
-            pass
-
-        return number_of_evaluations
-
-    def __repr__(self):
-        return self.id, self.student.reference_number, self.class_course.course.course_code, self.status
-
-    def __str__(self):
-        return str(self.__repr__())
-
-    pass
 
 
 

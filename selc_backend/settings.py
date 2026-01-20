@@ -31,7 +31,7 @@ SECRET_KEY = 'django-insecure-$16_&)di3i=vw1yjwgz$m+9po3j3oip+_q^m&9fq73b^#pmunf
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'selc-backend.onrender.com']
+ALLOWED_HOSTS = ['127.0.0.1', 'selc-backend.onrender.com', 'localhost',]
 
 #CORS SETTINGS
 CORS_ALLOW_ALL_ORIGINS = False  # Use with caution (only for development)
@@ -54,7 +54,9 @@ CORS_ALLOWED_HEADERS = list(default_headers) + [
 # Application definition
 
 INSTALLED_APPS = [
+
     'channels',
+    'daphne',
 
     'django.contrib.admin',
     'django.contrib.auth',
@@ -75,13 +77,15 @@ INSTALLED_APPS = [
 ]
 
 
-ASGI_APPLICATION = 'selc_backend.asgi.application'  
+ASGI_APPLICATION = 'selc_backend.asgi.application'
+
 
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels.layers.InMemoryChannelLayer',
     },  
 }
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -92,7 +96,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
-    
 ]
 
 
@@ -124,6 +127,7 @@ TEMPLATES = [
         },
     },
 ]
+
 
 WSGI_APPLICATION = 'selc_backend.wsgi.application'
 
@@ -163,7 +167,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'GMT'
 
 USE_I18N = True
 

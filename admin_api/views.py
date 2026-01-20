@@ -274,13 +274,15 @@ def updateSetting(request):
 #@requires_roles(['superuser', 'admin'])
 def generalCurrentStatistics(request):
 
+    general_setting = GeneralSetting.objects.first();
 
-    current_year = datetime.datetime.now().year 
-    current_semester = GeneralSetting.objects.first().current_semester
+
+    current_year = general_setting.academic_year
+    current_semester = general_setting.current_semester
 
     lecturers_count = Lecturer.objects.count()
 
-    courses_count = ClassCourse.objects.count()
+    courses_count = ClassCourse.getCurrentClassCourses().count()
 
     questions_count = Questionnaire.objects.count()
 

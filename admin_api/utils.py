@@ -159,7 +159,7 @@ def buildCourseRateMap(course: Course, class_courses: list[ClassCourse]) -> dict
         pass
 
 
-    parameter_mean_core = 0
+    parameter_mean_score = 0
     percentage_score = 0
 
     if len(class_courses) > 0:
@@ -176,61 +176,6 @@ def buildCourseRateMap(course: Course, class_courses: list[ClassCourse]) -> dict
     return course_rate_map
 
 
-
-
-def groupQuestionAnswerSummary(class_courses) -> dict:
-
-    questions = Questionnaire.objects.all()
-
-    """
-        {
-            question_number: {
-                'answer_type':  answer_type,
-                'question': actual question
-                'answer_summary': {
-                    'answer_variation_one': 1, 
-                    'answer_variation_two': 2 
-                }
-            },
-
-        }
-    """
-
-    eval_answer_map: dict[int, dict[str, int]] = {}
-
-    for question in questions:
-
-        question_id = question.q_id
-
-        if question_id not in eval_answer_map:
-            eval_answer_map[question_id] = {
-                'answer_type': question.answer_type,
-                'question': question.question,
-                'answer_summary': {}  # creates and empty dictionary for keeping summary of the answers variations to a question
-            }  # building another dictionary
-            pass
-            
-            
-    
-        for class_course in class_courses:
-            
-            # filter the evaluation based on the class course.
-            evaluations = Evaluation.objects.filter(class_course=class_course, question=question) 
-
-            for evaluation in evaluations:
-                answer = evaluation.answer
-
-                answerNotInSummary = answer not in eval_answer_map[question_id]['answer_summary']
-                
-                if answerNotInSummary:
-                    eval_answer_map[question_id]['answer_summary'][answer] = Evaluation.objects.filter(class_course=class_course, question_id=question, answer=answer).count()
-                    continue
-
-            pass
-        pass
-
-
-    return eval_answer_map
 
 
 

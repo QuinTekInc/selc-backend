@@ -9,25 +9,24 @@ https://docs.djangoproject.com/en/3.2/howto/deployment/asgi/
 
 import os
 
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'selc_backend.settings')
+
+import django
+
+django.setup()
+
+
 from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
 
-import admin_api.ws_routing
-import lecturers_api.ws_routing
+from  admin_api.routing import websocket_urlpatterns as admin_urlpatterns
+from lecturers_api.routing import websocket_urlpatterns as lecturer_urlpatterns
 
 
-
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'selc_backend.settings')
-
-django_asgi_app = get_asgi_application()
+websocket_routes = admin_urlpatterns + lecturer_urlpatterns
 
 application = ProtocolTypeRouter({
-    "http": django_asgi_app,
-    'websocket': AuthMiddlewareStack( 
-        URLRouter(
-            admin_api.ws_routing.websocket_urlpatterns +
-            lecturers_api.ws_routing.websocket_urlpatterns
-        )
-    )
+    "http": get_asgi_application(),
+    'websocket': URLRouter(websocket_routes) 
 })
