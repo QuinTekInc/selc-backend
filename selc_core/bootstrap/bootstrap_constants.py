@@ -452,6 +452,13 @@ dummy_class_courses = [
     {
         'course_code': 'COMP 152',
         'username': 'nsawarayi',
+        'year': 2024,
+        'semester': 1,
+        'level': '100',
+        'class_session': 'mainstream',
+        'is_accepting_response': False,
+        'credit_hours': 3
+
     }
 
 ]

@@ -32,9 +32,15 @@ class Notification(models.Model):
 
 
 class GeneralSetting(models.Model):
+
     current_semester = models.IntegerField(default=1)
+
     academic_year = models.IntegerField(default=datetime.datetime.now().year)
+
+    semester_end_date = models.DateField(default=datetime.datetime.now())
+
     enable_evaluations = models.BooleanField(default=False)
+
 
     def __repr__(self):
         return f'semester: {self.current_semester}', f'accept_evaluations: {self.enable_evaluations}'
@@ -46,7 +52,8 @@ class GeneralSetting(models.Model):
         return {
             'current_semester': self.current_semester,
             'academic_year': self.academic_year,
-            'enable_evaluations': self.enable_evaluations
+            'enable_evaluations': self.enable_evaluations,
+            'semester_end_date': self.semester_end_date
         }
 
 
@@ -303,7 +310,7 @@ class Course(models.Model):
 
     def courseInfo(self):
 
-        from admin_api.utils import categoryScoreBasedRemark
+        from .core_utils import getScoreRemark
 
         general_setting = GeneralSetting.objects.first()
 
@@ -317,7 +324,7 @@ class Course(models.Model):
         overall_mean_score, overall_percentage = self.computeMeanScore(class_courses)
         
         #overall remark for this [based on overall_average_scores of the classes for this course]
-        overall_remark = categoryScoreBasedRemark(overall_mean_score)
+        overall_remark = getScoreRemark(overall_mean_score)
 
         current_class_courses = class_courses.filter(semester=general_setting.current_semester, year=general_setting.academic_year)
 
@@ -328,7 +335,7 @@ class Course(models.Model):
         mean_score, percentage_score = self.computeMeanScore(current_class_courses)
         
         #remark of course performance for the semester
-        current_remark = categoryScoreBasedRemark(mean_score)
+        current_remark = getScoreRemark(mean_score)
 
         #the total number of students currently learning this course
         students_counts: list[tuple] = [class_course.getNumberOfRegisteredStudents() for class_course in current_class_courses]
@@ -383,18 +390,25 @@ class Course(models.Model):
     pass
 
 
+class SessionChoices(models.TextChoices):
+    MAINSTREAM = ('MAINSTREAM', 'mainstream')
+    WEEKEND = ('WEEKEND', 'weekend')
+
+
+
 
 #assigns courses to lecturers for a particular semester and academic year
 class ClassCourse(models.Model):
     id = models.AutoField(primary_key=True)
-    course: Course = models.ForeignKey(Course, related_name='cc_course', on_delete=models.CASCADE)
+    course: Course = models.ForeignKey(Course, related_name='class_courses', on_delete=models.CASCADE)
     credit_hours = models.IntegerField(default=3)
-    lecturer: Lecturer = models.ForeignKey(Lecturer, related_name='lecturer', on_delete=models.CASCADE)
-    is_accepting_response = models.BooleanField(default=True)
+    lecturer: Lecturer = models.ForeignKey(Lecturer, related_name='class_courses', on_delete=models.CASCADE)
+    class_session = models.CharField(max_length=20, default='mainstream', choices=SessionChoices.choices)
     level = models.CharField(max_length=4, default='')
     semester = models.IntegerField(default=1)
     year = models.IntegerField(null=True)
     has_online = models.BooleanField(default=False)
+    is_accepting_response = models.BooleanField(default=True)
 
     def getSavableReportFileName(self):
         return f'{self.year}0{self.semester}_{self.course.course_code}_{self.lecturer.getFullName()}'
@@ -411,10 +425,12 @@ class ClassCourse(models.Model):
         return class_courses
 
     #returns the average lecturer rating got this course
-    def computeLecturerRatingForCourse(self):
-        ratings = LecturerRating.objects.filter(class_course=self)
+    def computeLecturerRatingForCourse(self, ratings=None):
 
-        if len(ratings) == 0:
+        if ratings is None:
+            ratings = LecturerRating.objects.filter(class_course=self)
+
+        if ratings.count() == 0:
             return 0
 
         ratings_sum = sum([rating.rating for rating in ratings])
@@ -424,14 +440,15 @@ class ClassCourse(models.Model):
         
 
     #the mean score for the course.
-    def computeGrandMeanScore(self) -> tuple:
+    def computeGrandMeanScore(self, evaluations=None) -> tuple:
 
         from .core_utils import ANSWER_SCORE_DICT
 
-        #get all performance evaluations
-        evaluations = Evaluation.objects.filter(class_course=self)
+        if evaluations is None:
+            #get all the course evaluations
+            evaluations = Evaluation.objects.filter(class_course=self)
 
-        total_evaluations = len(evaluations)
+        total_evaluations = evaluations.count()
 
         if total_evaluations == 0:
             return 0, 0
@@ -465,8 +482,10 @@ class ClassCourse(models.Model):
 
 
     #method fo compute the number of students who have registered for the course
-    def getNumberOfRegisteredStudents(self) -> tuple[int, int]:
-        students_classes = StudentClass.objects.filter(class_course=self)
+    def getNumberOfRegisteredStudents(self, students_classes=None) -> tuple[int, int]:
+
+        if students_classes is None:
+            students_classes = StudentClass.objects.filter(class_course=self)
 
         if not students_classes.exists():
             return (0, 0)
@@ -510,9 +529,10 @@ class ClassCourse(models.Model):
 
 
     #returns the suggestions and sentiments tone of the suggestion
-    def getEvalSuggestions(self, include_suggestions=True) -> dict:
+    def getEvalSuggestions(self, include_suggestions=True, suggestions=None) -> dict:
 
-        suggestions = EvaluationSuggestion.objects.filter(class_course=self)
+        if suggestions is None:
+            suggestions = EvaluationSuggestion.objects.filter(class_course=self)
 
         sentiments = [suggestion.sentiment for suggestion in suggestions]
 
@@ -546,11 +566,11 @@ class ClassCourse(models.Model):
             }
 
 
-    def getQuestionAnswerSummary(self, question: str, evaluations=None) -> dict:
+    def getQuestionAnswerSummary(self, question, evaluations) -> dict:
 
         from . import core_utils as utils
 
-        question_asnwers = evaluations.values_list('answer', flat=True)
+        question_answers = evaluations.values_list('answer', flat=True)
 
         answer_summary = dict(Counter(question_answers))
 
@@ -567,7 +587,7 @@ class ClassCourse(models.Model):
 
 
         question_eval_dict = {
-            'question': question,
+            'question': question.question,
             'answer_type': question.answer_type,
             'answer_summary': answer_summary,
         }
@@ -673,8 +693,8 @@ class ClassCourse(models.Model):
             questions_list = []
 
             for questionnaire in questionnaires:
-                question_evaluations = evaluations.filter(question=question)
-                question_answer_summary = self.getQuestionAnswerSummary(questionnaire.question, question_evaluations)
+                question_evaluations = evaluations.filter(question=questionnaire)
+                question_answer_summary = self.getQuestionAnswerSummary(questionnaire, question_evaluations)
                 questions_list.append(question_answer_summary)
                 pass
 
@@ -686,17 +706,84 @@ class ClassCourse(models.Model):
         return cat_list
 
 
+
     def getEvalDetailsByProgram(self, program):
-        program_students = self.registerations.filter(student__program=program)
+
+        program_students = (Student.objects
+                            .filter(registrations__class_course=self, program=program).distinct())
 
         evaluations = Evaluation.objects.filter(class_course=self, student__in=program_students)
 
         return self.getEvalDetails(evaluations)
 
 
-    def getOverallEvalDetails(self):
-        return self.getOverallEvalDetails()
 
+    def getEvalSuggestionByProgram(self, program, include_suggestions=True,):
+        program_students = (Student.objects
+                            .filter(registrations__class_course=self, program=program)
+                            .distinct())
+
+        suggestions = EvaluationSuggestion.objects.filter(class_course=self, student__in=program_students)
+
+        return self.getEvalSuggestions(include_suggestions, suggestions)
+
+
+
+    def getCCDetailByProgram(self):
+        programs = self.getListOfProgramsInClass()
+
+        cc_program_info_maps: list[dict] = []
+
+        from .core_utils import getScoreRemark
+
+        for program in programs:
+
+            program_students = (Student.objects
+                                .filter(registrations__class_course=self, program=program))
+
+            program_evaluations: list[Evaluation] = self.evaluations.filter(student__in=program_students)
+
+            program_student_classes = self.registrations.filter(student__in=program_students)
+
+            program_lecturer_ratings = LecturerRating.objects.filter(class_course=self, student__in=program_students)
+
+            # program_suggestions: list[EvaluationSuggestion] = self.evaluation_suggestions.fillter(student__int=program_students)
+
+
+
+            p_mean_score, p_percentage_score = self.computeGrandMeanScore(evaluations=program_evaluations)
+
+            p_remark = getScoreRemark(p_mean_score)
+
+
+            p_registered_students, p_evaluated_students = self.getNumberOfRegisteredStudents(program_student_classes)
+
+            p_response_rate = (p_evaluated_students / p_registered_students) * 100 if p_registered_students != 0 else 0
+
+
+            program_average_lecturer_rating = self.computeLecturerRatingForCourse(ratings=program_lecturer_ratings)
+
+            cc_program_info_maps.append({
+                'program': program,
+                'number_of_registered_students': p_registered_students,
+                'number_of_evaluated_students': p_evaluated_students,
+                'response_rate': p_response_rate,
+
+                'mean_score': p_mean_score,
+                'percentage_score': p_percentage_score,
+                'remark': p_remark,
+
+                'lecturer_rating': program_average_lecturer_rating
+            })
+
+
+        return cc_program_info_maps
+
+
+
+    def getProgramPopulation(self, program):
+        students_classes = self.registrations.filter(student__program=program)
+        return self.getNumberOfRegisteredStudents(students_classes)
 
 
     #todo: remake this method to "getQuestionnaireCategoriesSummary"
@@ -809,8 +896,8 @@ class ClassCourse(models.Model):
 #todo: rename this model or class to "RegisteredClass"
 class StudentClass(models.Model):
     id = models.AutoField(primary_key=True)
-    student: Student = models.ForeignKey(Student, related_name='registerations', on_delete=models.CASCADE)
-    class_course: ClassCourse = models.ForeignKey(ClassCourse, related_name='registerations', on_delete=models.CASCADE)
+    student: Student = models.ForeignKey(Student, related_name='registrations', on_delete=models.CASCADE)
+    class_course: ClassCourse = models.ForeignKey(ClassCourse, related_name='registrations', on_delete=models.CASCADE)
     evaluated = models.BooleanField(default=False)
 
     def __str__(self):

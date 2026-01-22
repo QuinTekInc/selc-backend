@@ -35,8 +35,6 @@ class CourseEvalExcelReport:
         self.lecturer_rating_summary_sheet()
         self.suggestion_sentiments_summary_sheet()
 
-        self.save()
-
         pass
 
 
@@ -67,12 +65,15 @@ class CourseEvalExcelReport:
         # average sentiment
         # lecturer rating for this course.
 
+        programs = self.class_course.getListOfProgramsInClass()
+
         overview_list = [
             ('Lecturer Name', self.class_course.lecturer.getFullName()),
             ('Department', self.class_course.lecturer.department.department_name),
             ('Course code', self.class_course.course.course_code),
             ('Course title', self.class_course.course.title),
             ('Credit Hours', self.class_course.credit_hours),
+            ('Level', self.class_course.level),
             ('Semester', self.class_course.semester),
             ('Academic year', self.class_course.year),
             ('Number of Students', number_of_students),
@@ -81,7 +82,8 @@ class CourseEvalExcelReport:
             ('Mean Score', course_mean_score),
             ('Percentage Score', percentage_score),
             ('Remark', getScoreRemark(course_mean_score)),
-            ('Lecturer Rating for this course', self.class_course.computeLecturerRatingForCourse())
+            ('Lecturer Rating for this course', self.class_course.computeLecturerRatingForCourse()),
+            ('Number of Programs', len(programs))
         ]
 
 
@@ -90,6 +92,7 @@ class CourseEvalExcelReport:
         report_commons.set_column_widths(ws, {1: 30, 2: 50})
 
 
+        current_row_index = 2
 
         for row, overview_field in enumerate(overview_list, start=2):
 
@@ -99,6 +102,16 @@ class CourseEvalExcelReport:
 
             #data cell
             ws.cell(row=row, column=2, value=overview_field[1])
+
+            current_row_index += 1
+            pass
+
+
+        #add the included programs
+        ws.cell(row=current_row_index, column=1, value='Programs')
+
+        for row, program in enumerate(programs, start=current_row_index):
+            ws.cell(row=row, column=1, value=program)
             pass
 
         pass

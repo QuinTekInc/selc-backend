@@ -2,12 +2,12 @@
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.authtoken.models import Token
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.status import *
 
 from django.contrib.auth.models import User
-from django.contrib.auth import login, logout
+from django.contrib.auth import authenticate, login, logout
 from selc_core.models import Lecturer, ClassCourse
 from selc_core.models import GeneralSetting
 
@@ -17,23 +17,18 @@ import joblib
 # Create your views here.
 
 @api_view(['POST'])
+@authentication_classes([])
+@permission_classes([AllowAny])
 def loginLecturer(request):
 
     username = request.data.get('username')
     password = request.data.get('password')
 
 
-    user = None
+    user = authenticate(request, username=username, password=password)
 
-    try:
-        user = User.objects.get(username=username)
-    except User.DoesNotExist:
-        return Response({'message': 'Incorrect username or password'})
-    
-
-    if not user.check_password(password):
+    if user is None:
         return Response({'message': 'Incorrect username or password'}, status=HTTP_401_UNAUTHORIZED)
-    
 
     if not user.is_active:
         return Response({'message': 'Your account has been marked as inactive. Contact the administrator for support'}, status=HTTP_401_UNAUTHORIZED)

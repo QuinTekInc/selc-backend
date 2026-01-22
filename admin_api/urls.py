@@ -17,7 +17,6 @@ urlpatterns = [
 
     #todo: dashboard urls
     path('general-current-stats/', views.generalCurrentStatistics),
-    path('dashboard-graph-data/', views.getDashboardGraphData), 
     path('lecturers-ratings-rank/', views.getLecturersRatings),
     path('courses-ratings-rank/', views.getCourseRatings),
 
@@ -25,6 +24,7 @@ urlpatterns = [
     #todo: general setting urls
     path('get-general-settings/',views.getGeneralSetting),
     path('update-general-settings/', views.updateSetting),
+    path('check-calendar', views.checkAcademicCalendar),
 
     path('get-class-courses/', views.getClassCourses),
     path('update-class-course/<int:cc_id>', views.updateClassCourse),
@@ -46,7 +46,7 @@ urlpatterns = [
 
     #todo: ClassCourse evaluation information
     path('class-course-eval-summary/<int:cc_id>', views.getClassCourseEvalSummary),
-    path('eval-question-category-remark/<int:cc_id>', views.getCourseEvalCategoryRemarks),
+    path('class-course-detail-by-program/<int:cc_id>', views.getCCDetailsByProgram),
     path('eval-suggestions/<int:cc_id>', views.getEvaluationSuggestions),
     path('eval-lrating-summary/<int:cc_id>', views.getEvalLecturerRatingSummary),
     

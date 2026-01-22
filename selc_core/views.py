@@ -143,4 +143,6 @@ def get_all_files(request): #should be renamed to get files
 
 
 
-
+@api_view(['GET'])
+def test(request):
+    return Response(ClassCourse.objects.first().getEvalDetailsByProgram('B.Sc Computer Science'))

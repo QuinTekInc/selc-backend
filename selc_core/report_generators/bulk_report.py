@@ -365,23 +365,34 @@ class BulkExcelReport:
         # semester detail cells
         self.build_field_cell(sheet, row=current_row, column=5, value='Semester')
 
-        sheet.cell(row=current_row, column=6, value=class_course.semester)  # spans 5 columns FGHIJ
-        sheet.merge_cells(start_row=current_row, start_column=6, end_row=current_row, end_column=10)
+        sheet.cell(row=current_row, column=6, value=class_course.semester)
+
+        #academic year detail cells
+        self.build_field_cell(sheet, row=current_row, column=7, value='Year')
+
+        sheet.cell(row=current_row, column=8, value=class_course.year)
+
+        # Level detail cells
+        self.build_field_cell(sheet, row=current_row, column=9, value='Level')
+
+        sheet.cell(row=current_row, column=10, value=class_course.level)
+
+        #sheet.merge_cells(start_row=current_row, start_column=6, end_row=current_row, end_column=10)
 
         # ==================next row=========================================
 
         current_row += 1
 
-        # course code cells
-        self.build_field_cell(sheet, row=current_row, column=1, value='Course Code')
+        # course title cells
+        self.build_field_cell(sheet, row=current_row, column=1, value='Course Title')
 
-        sheet.cell(row=current_row, column=2, value=class_course.course.course_code)  # spans 3 columns BCD
+        sheet.cell(row=current_row, column=2, value=class_course.course.title)  # spans 3 columns BCD
         sheet.merge_cells(start_row=current_row, start_column=2, end_row=current_row, end_column=4)
 
-        # course title cells
-        self.build_field_cell(sheet, row=current_row, column=5, value='Course Title')
+        # course code cells
+        self.build_field_cell(sheet, row=current_row, column=5, value='Course Code')
 
-        sheet.cell(row=current_row, column=6, value=class_course.course.title)  # span 3 columns FGH
+        sheet.cell(row=current_row, column=6, value=class_course.course.course_code)  # span 3 columns FGH
         sheet.merge_cells(start_row=current_row, start_column=6, end_row=current_row, end_column=8)
 
         # credit hour cells
@@ -449,13 +460,17 @@ class BulkExcelReport:
         sheet.cell(row=current_row, column=10, value=cc_map['remark'])
 
 
+        #todo: add a new row to show the campus, week/mainstream session, number of programs (specifically for general courses)
+        # don't forget to increase the current_row variable first
+
+
         #set the row heights for the class_course detail fields
         for r in range(q_start_row, current_row + 1):
             report_commons.set_row_height(sheet, r, 0.4, in_inches=True)
             pass
 
 
-        # next row
+        # ======================next row=======================================================
         current_row += 1
 
         # todo: populating the headers [header title, span]

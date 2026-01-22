@@ -105,21 +105,32 @@ def create_classes_chart_info(class_courses) -> dict:
 
     #TODO: CALCULATING THE AVERAGE LECTURER RATINGS OBTAINED THE GIVEN SET OF CLASS COURSES
     lecturer_ratings = LecturerRating.objects.filter(class_course__in=class_courses)
+    total_ratings = lecturer_ratings.count()
 
     lrating_map = {}
 
-    for rating in range(5, -1, -1):
-        lrating_map[rating] = lecturer_ratings.filter(rating=rating).count()
+    for rating in range(5, 0, -1):
+
+        rating_count = lecturer_ratings.filter(rating=rating).count()
+        rating_percentage = (rating_count / total_ratings) * 100 if total_ratings != 0 else 0
+
+        lrating_map[str(rating)] = lecturer_ratings.filter(rating=rating).count()
+        lrating_map[f'rating_{rating}_percentage'] = rating_percentage
+
         pass
 
 
     #TODO: FINDING THE OVERALL SUGGESTION SENTIMENTS FOR THE GIVEN SET OF CLASS COURSES
     suggestions = EvaluationSuggestion.objects.filter(class_course__in=class_courses)
+    total_suggestions = suggestions.count()
 
     sentiments_map = {}
 
     for sentiment in ['negative', 'neutral', 'positive']:
+        sentiment_count = suggestions.filter(sentiment=sentiment).count()
+        sentiment_percentage = (sentiment_count/total_suggestions) * 100 if total_suggestions != 0 else 0
         sentiments_map[sentiment] = suggestions.filter(sentiment=sentiment).count()
+        sentiments_map[f'{sentiment}_percentage'] = sentiment_percentage
         pass
 
 
@@ -133,6 +144,7 @@ def create_classes_chart_info(class_courses) -> dict:
             },
 
             'lecturer_rating': {
+                'total_students'
                 5: int,
                 4: int,
                 3: int,
@@ -158,6 +170,5 @@ def create_classes_chart_info(class_courses) -> dict:
 
 
     return chart_data
-
 
 

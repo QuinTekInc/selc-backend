@@ -1,5 +1,7 @@
 
 import datetime
+from datetime import timezone
+
 from django.contrib.auth.models import User, Group, GroupManager
 from django.contrib.auth import login, logout, authenticate
 from django.db.models import Q
@@ -250,7 +252,25 @@ def updateAccountInfo(request):
 
 @api_view(['GET'])
 def getGeneralSetting(request):
-    return Response(GeneralSetting.objects.all().first().toMap())
+
+    #current date
+    now_date = datetime.datetime.now()
+
+    general_setting = GeneralSetting.objects.first()
+
+    setting_map = general_setting.toMap()
+
+    semester_end_date = general_setting.semester_end_date
+
+    require_update_semester = now_date >= semester_end_date
+
+    require_update_year = now_date.year > general_setting.academic_year
+
+    setting_map['require_update_semester'] = require_update_semester
+    setting_map['require_update_year'] = require_update_year
+
+    return Response(setting_map)
+
 
 
 
@@ -258,9 +278,12 @@ def getGeneralSetting(request):
 @api_view(['POST'])
 @requires_superuser
 def updateSetting(request):
+
     general_setting = GeneralSetting.objects.all().first()
+
     general_setting.current_semester = request.data.get('current_semester')
-    general_setting.disable_evaluations = request.data.get('disable_evaluations')
+    general_setting.enable_evaluations = request.data.get('enable_evaluations')
+    general_setting.semester_end_date = request.data.get('semester_end_date')
 
     general_setting.save()
 
@@ -680,9 +703,9 @@ def getClassCourseEvalSummary(request, cc_id):
 
 
 @api_view(['GET'])
-def getCourseEvalCategoryRemarks(request, cc_id):
+def getCCDetailsByProgram(request, cc_id):
     class_course = ClassCourse.objects.get(id=cc_id)
-    return Response(class_course.getEvalQuestionCategoryRemarks())
+    return Response(class_course.getCCDetailByProgram())
 
 
 
@@ -860,15 +883,6 @@ def getCourseRatings(request):
 
 
 
-@api_view(['GET'])
-@requires_roles(['superuser', 'admin'])
-def getDashboardGraphData(request):
 
-    from selc_core.core_utils import create_classes_chart_info
-
-    class_courses = ClassCourse.getCurrentClassCourses()
-
-    dashboard_graph_data = create_classes_chart_info(class_courses)
-    return Response(dashboard_data)
 
 
