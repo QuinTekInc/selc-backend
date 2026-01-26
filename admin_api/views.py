@@ -1,10 +1,8 @@
 
-import datetime
-from datetime import timezone
+from django.utils import timezone
 
 from django.contrib.auth.models import User, Group, GroupManager
 from django.contrib.auth import login, logout, authenticate
-from django.db.models import Q
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -12,7 +10,6 @@ from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.status import *
 from selc_core.models import *
-from . import utils
 
 from .utils import createUserAccountDict, buildParamLecturerMap, buildCourseRateMap
 from .decorators import requires_superuser, requires_roles
@@ -84,7 +81,7 @@ def createUser(request):
     group = Group.objects.get(name=group_name)
     user.groups.add(group)
 
-    return Response({'message': f'User, {username},  has been succesfully created.'})
+    return Response({'message': f'User, {username},  has been successfully created.'})
 
 
 
@@ -163,9 +160,7 @@ def loginAdmin(request):
         return Response({'message': 'Username and password are required.'}, status=HTTP_401_UNAUTHORIZED)
 
     print('This place has been passed')
-    
 
-    user = None
 
     try:
         user = User.objects.get(username=username)
@@ -254,7 +249,7 @@ def updateAccountInfo(request):
 def getGeneralSetting(request):
 
     #current date
-    now_date = datetime.datetime.now()
+    now_date = timezone.now().date()
 
     general_setting = GeneralSetting.objects.first()
 
@@ -262,12 +257,9 @@ def getGeneralSetting(request):
 
     semester_end_date = general_setting.semester_end_date
 
-    require_update_semester = now_date >= semester_end_date
+    require_update_academic_calendar = now_date >= semester_end_date
 
-    require_update_year = now_date.year > general_setting.academic_year
-
-    setting_map['require_update_semester'] = require_update_semester
-    setting_map['require_update_year'] = require_update_year
+    setting_map['require_update_calendar'] = require_update_academic_calendar
 
     return Response(setting_map)
 
@@ -345,7 +337,6 @@ def getClassCourses(request):
 def updateClassCourse(request, cc_id):
     request_data = request.data
 
-    cc_id = request_data.get('cc_id', None)
 
     accepting_response = request_data.get('is_accepting_response', None)
 
@@ -441,7 +432,7 @@ def getCurrentClassCourseSentimentSummary(request):
 
     general_setting = GeneralSetting.objects.all().first()
 
-    class_courses = ClassCourse.objects.filter(semester=general_setting.current_semester, year=datetime.datetime.now().year)
+    class_courses = ClassCourse.objects.filter(semester=general_setting.current_semester, year=timezone.now().year)
 
     sentiments_map_list: list[dict] = []
 

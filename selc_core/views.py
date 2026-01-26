@@ -123,9 +123,9 @@ def get_all_files(request): #should be renamed to get files
 
         cc_file_names = [cc.getSavableReportFileName() for cc in l_class_courses]
         
-        reduced_file_names = [fccn[0: fccn.rindex('.')] for fccn in cc_file_names]
+        #reduced_file_names = [fccn[0: fccn.rindex('.')] for fccn in cc_file_names]
 
-        file_names = cc_file_names + reduced_file_names#if the file name contains the lecturer's name.
+        file_names = cc_file_names # if the file name contains the lecturer's name.
 
         query = (Query(file_name__in=file_names) | Query(file_name__icontains=lecturer.getFullName()))
             

@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 
-import datetime
+from django.utils import timezone
 from collections import Counter
 
 
@@ -35,9 +35,9 @@ class GeneralSetting(models.Model):
 
     current_semester = models.IntegerField(default=1)
 
-    academic_year = models.IntegerField(default=datetime.datetime.now().year)
+    academic_year = models.IntegerField(default=timezone.now().year)
 
-    semester_end_date = models.DateField(default=datetime.datetime.now())
+    semester_end_date = models.DateField(default=timezone.now())
 
     enable_evaluations = models.BooleanField(default=False)
 
@@ -555,7 +555,7 @@ class ClassCourse(models.Model):
 
             sentiment_summary_list.append(sentiment_map)
 
-        suggestions_map = [suggestion.toMap(include_lecturer_rating=True) for suggestion in suggestions]
+        suggestions_map = [suggestion.toMap(include_lecturer_rating=True, include_program=True) for suggestion in suggestions]
 
         if not include_suggestions:
             return {'sentiment_summary': sentiment_summary_list}
@@ -616,7 +616,6 @@ class ClassCourse(models.Model):
         question_eval_dict['remark'] = utils.getScoreRemark(mean_answer_score)
 
         return question_eval_dict
-
 
 
     #todo: rename this to "getQuestionnaireAnswerSummary"
@@ -1038,7 +1037,7 @@ class EvaluationSuggestion(models.Model):
     def __str__(self):
         return str(self.__repr__())
 
-    def toMap(self, include_lecturer_rating=False):
+    def toMap(self, include_lecturer_rating=False, include_program=False):
 
         suggestion_map = {
             'suggestion_id': self.id,
@@ -1049,6 +1048,12 @@ class EvaluationSuggestion(models.Model):
         if include_lecturer_rating:
             lecturer_rating = LecturerRating.objects.get(class_course=self.class_course, student=self.student)
             suggestion_map['rating'] = lecturer_rating.rating
+            pass
+
+
+        if include_program:
+            student_program = self.student.program 
+            suggestion_map['program'] = student_program
             pass
 
         return suggestion_map

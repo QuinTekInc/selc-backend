@@ -99,7 +99,14 @@ def getCourseQuestionnaireEvaluation(request, cc_id):
 
 
 
+@api_view(['GET'])
+def getCCDetailsByProgram(request, cc_id):
+    class_course = ClassCourse.objects.get(id=cc_id)
+    return Response(class_course.getCCDetailByProgram())
 
+
+
+#todo: remove this function later.
 @api_view(['GET'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])
@@ -133,20 +140,3 @@ def getEvaluationSuggestions(request, cc_id):
     return Response(class_course.getEvalSuggestions())
 
 
-
-
-
-@api_view(['GET'])
-def getDashboardGraphData(request):
-
-    user = request.user
-
-    lecturer = Lecturer.objects.get(user=user)
-
-    class_courses = ClassCourse.getCurrentClassCourses().filter(lecturer=lecturer)
-
-    from selc_core.core_utils import  create_classes_chart_info
-
-    chart_data = create_classes_chart_info(class_courses)
-
-    return Response(chart_data)

@@ -59,6 +59,7 @@ class BulkExcelReport:
         headers = [
             'Lecturer',
             'Department',
+            'Level',
             'Course Code',
             'Course Title',
             'Thematic Areas (Categories)'
@@ -91,10 +92,17 @@ class BulkExcelReport:
         # todo: merge the header cell horizontally to be at par with the sub header cells
         ws.merge_cells(start_row=2, start_column=len(headers), end_row=2, end_column=len(headers) + len(subheaders) - 1)
 
-        col_widths = {1: 50, 2: 45, 3: 25, 4: 45, }
+        col_widths = {1: 50, 2: 45, 3: 15,  4: 25, 5: 45, }
 
-        for col in range(5, span_col + 1):
-            col_widths[col] = 40
+        w_skip = False
+        for col in range(6, span_col + 1):
+
+            if not w_skip:
+                col_widths[col] = 40
+            else:
+                col_widths[col] = 20
+
+            w_skip = not w_skip
 
         report_commons.set_column_widths(ws, col_widths)
 
@@ -108,6 +116,7 @@ class BulkExcelReport:
 
             lecturer_name = class_course.lecturer.getFullName()
             department = class_course.lecturer.department.department_name
+            level = class_course.level
             course_code = class_course.course.course_code
             course_title = class_course.course.title
 
@@ -115,13 +124,15 @@ class BulkExcelReport:
 
             ws.cell(row=row, column=2, value=department)
 
-            ws.cell(row=row, column=3, value=course_code)
+            ws.cell(row=row, column=3, value=level)
 
-            ws.cell(row=row, column=4, value=course_title)
+            ws.cell(row=row, column=4, value=course_code)
+
+            ws.cell(row=row, column=5, value=course_title)
 
             categories_list = class_course.getEvalDetails()
 
-            col = 5
+            col = 6
 
             for category_item in categories_list:
                 cat_mean_score = category_item['mean_score']
@@ -144,6 +155,7 @@ class BulkExcelReport:
         headers = [
             'Lecturer',
             'Department',
+            'Level',
             'Course Code',
             'Course Title',
             'Ratings'
@@ -173,9 +185,9 @@ class BulkExcelReport:
         for header_col, _ in enumerate(headers[0: len(headers) - 1], start=1):
             ws.merge_cells(start_row=2, start_column=header_col, end_row=3, end_column=header_col)
 
-        col_widths = {1: 50, 2: 45, 3: 25, 4: 45}
+        col_widths = {1: 50, 2: 45, 3: 20,  4: 25, 5: 45}
 
-        for col in range(5, span_col + 1):
+        for col in range(6, span_col + 1):
             col_widths[col] = 25
 
         report_commons.set_column_widths(ws, col_widths)
@@ -186,6 +198,7 @@ class BulkExcelReport:
         for class_course in self.class_courses:
             lecturer_name = class_course.lecturer.getFullName()
             department = class_course.lecturer.department.department_name
+            level = class_course.level
             course_code = class_course.course.course_code
             course_title = class_course.course.title
 
@@ -193,10 +206,11 @@ class BulkExcelReport:
 
             ws.cell(row=row, column=1, value=lecturer_name)
             ws.cell(row=row, column=2, value=department)
-            ws.cell(row=row, column=3, value=course_code)
-            ws.cell(row=row, column=4, value=course_title)
+            ws.cell(row=row, column=3, value=level)
+            ws.cell(row=row, column=4, value=course_code)
+            ws.cell(row=row, column=5, value=course_title)
 
-            col = 5
+            col = 6
 
             for rating_item in rating_summary:
                 rating_count = rating_item['rating_count']
@@ -220,6 +234,7 @@ class BulkExcelReport:
         headers = [
             'Lecturer',
             'Department',
+            'Level',
             'Course Code',
             'Course Title',
             'Number of Students',
@@ -243,6 +258,7 @@ class BulkExcelReport:
             cc_map = class_course.toMap()
             lecturer_name = cc_map['lecturer']['name']
             department = cc_map['lecturer']['department']
+            level = cc_map['level']
             course_code = cc_map['course']['course_code']
             course_title = cc_map['course']['course_title']
             number_of_students = cc_map['number_of_registered_students']
@@ -251,12 +267,13 @@ class BulkExcelReport:
 
             ws.cell(row=row, column=1, value=lecturer_name)
             ws.cell(row=row, column=2, value=department)
-            ws.cell(row=row, column=3, value=course_code)
-            ws.cell(row=row, column=4, value=course_title)
+            ws.cell(row=row, column=3, value=level)
+            ws.cell(row=row, column=5, value=course_code)
+            ws.cell(row=row, column=6, value=course_title)
 
-            ws.cell(row=row, column=5, value=number_of_students)
-            ws.cell(row=row, column=6, value=number_of_students)
-            ws.cell(row=row, column=7, value=response_rate)
+            ws.cell(row=row, column=7, value=number_of_students)
+            ws.cell(row=row, column=8, value=number_of_evaluated)
+            ws.cell(row=row, column=9, value=response_rate)
 
             row += 1
 
@@ -271,6 +288,7 @@ class BulkExcelReport:
         headers = [
             'Lecturer',
             'Department',
+            'Level',
             'Course Code',
             'Course Title',
             'Suggestion Sentiments'
@@ -297,7 +315,7 @@ class BulkExcelReport:
             ws.merge_cells(start_row=2, start_column=col, end_row=3, end_column=col)
             pass
 
-        col_widths = {1: 50, 2: 45, 3: 25, 4: 45}
+        col_widths = {1: 50, 2: 45, 3: 15,  4: 25, 5: 45}
 
         for col in range(5, span_col + 1):
             col_widths[col] = 25
@@ -321,7 +339,7 @@ class BulkExcelReport:
             ws.cell(row=row, column=3, value=course_code)
             ws.cell(row=row, column=4, value=course_title)
 
-            col = 5
+            col = 6
 
             for sentiment_item in sentiment_summary:
                 sentiment_count = sentiment_item['sentiment_count']

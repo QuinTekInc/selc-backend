@@ -24,7 +24,6 @@ urlpatterns = [
     #todo: general setting urls
     path('get-general-settings/',views.getGeneralSetting),
     path('update-general-settings/', views.updateSetting),
-    path('check-calendar', views.checkAcademicCalendar),
 
     path('get-class-courses/', views.getClassCourses),
     path('update-class-course/<int:cc_id>', views.updateClassCourse),

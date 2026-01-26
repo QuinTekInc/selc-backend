@@ -1,14 +1,28 @@
-
 from openpyxl.styles import Alignment, Font
 from openpyxl.workbook import Workbook
-from openpyxl.worksheet.worksheet import Worksheet
 
 from selc_core.core_utils import getScoreRemark
 from selc_core.models import ClassCourse
 
 from . import report_commons
 
-from django.core.files.base import File
+
+from io import BytesIO
+from reportlab.platypus import (
+    SimpleDocTemplate,
+    Paragraph,
+    Table,
+    Spacer,
+    PageBreak,
+    Image
+)
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.enums import TA_LEFT
+from reportlab.lib import colors
+
+from pathlib import Path
+
 
 
 class CourseEvalExcelReport:
@@ -24,10 +38,8 @@ class CourseEvalExcelReport:
         #remove the default work sheet.
         self.work_book.remove(self.work_book.active)
 
-
         #load the category info
         self.eval_summary = self.class_course.getEvalDetails()
-
 
         self.overview_sheet()
         self.questionnaire_answer_summary_sheet()
@@ -37,16 +49,11 @@ class CourseEvalExcelReport:
 
         pass
 
-
-
-
-
     def overview_sheet(self):
         ws = self.work_book.create_sheet(title='Overview')
 
         number_of_students, evaluated_students = self.class_course.getNumberOfRegisteredStudents()
         response_rate = (evaluated_students / number_of_students) * 100
-
 
         course_mean_score, percentage_score = self.class_course.computeGrandMeanScore()
 
@@ -86,16 +93,13 @@ class CourseEvalExcelReport:
             ('Number of Programs', len(programs))
         ]
 
-
         report_commons.init_sheet_title(ws, title='Course Evaluation Overview', span_column=2)
 
         report_commons.set_column_widths(ws, {1: 30, 2: 50})
 
-
         current_row_index = 2
 
         for row, overview_field in enumerate(overview_list, start=2):
-
             field_cell = ws.cell(row=row, column=1, value=overview_field[0])
             field_cell.alignment = Alignment(horizontal='center', vertical='center')
             field_cell.font = Font(bold=True)
@@ -106,7 +110,6 @@ class CourseEvalExcelReport:
             current_row_index += 1
             pass
 
-
         #add the included programs
         ws.cell(row=current_row_index, column=1, value='Programs')
 
@@ -115,8 +118,6 @@ class CourseEvalExcelReport:
             pass
 
         pass
-
-
 
     def questionnaire_answer_summary_sheet(self):
 
@@ -166,7 +167,6 @@ class CourseEvalExcelReport:
             }
         '''
 
-
         row = 3
 
         for eval_summary_item in questions_answer_summary:
@@ -177,7 +177,6 @@ class CourseEvalExcelReport:
             average_score: float = eval_summary_item['mean_score']
             percentage_score: float = eval_summary_item['percentage_score']
             remark: float = eval_summary_item['remark']
-
 
             #populate the question cell.
             report_commons.create_cell(ws, row=row, column=1, value=question)
@@ -202,7 +201,6 @@ class CourseEvalExcelReport:
 
             ws.cell(row=start_row, column=7, value=remark)
 
-
             #todo: span the various cells apart to at the par with the cells of its corresponding answer_option and count cells.
 
             #spanning the question cell
@@ -221,10 +219,7 @@ class CourseEvalExcelReport:
             ws.merge_cells(start_row=start_row, start_column=7, end_row=end_row, end_column=7)
             pass
 
-
         pass
-
-
 
     def category_scores_sheet(self):
 
@@ -238,7 +233,6 @@ class CourseEvalExcelReport:
         report_commons.set_row_height(ws, 2, 0.4, in_inches=True)
 
         report_commons.set_column_widths(ws, {1: 30, 2: 50, 3: 15, 4: 15, 5: 10})
-
 
         category_summary: list = self.class_course.getEvalQuestionCategoryRemarks(include_questions=True)
 
@@ -279,7 +273,6 @@ class CourseEvalExcelReport:
 
         pass
 
-
     def lecturer_rating_summary_sheet(self):
 
         ws = self.work_book.create_sheet(title='Lecturer Rating')
@@ -293,9 +286,7 @@ class CourseEvalExcelReport:
 
         report_commons.set_column_widths(ws, {1: 10, 2: 15, 3: 17})
 
-
         lecturer_rating_summary = self.class_course.getLecturerRatingDetails()
-
 
         row = 3
 
@@ -314,9 +305,6 @@ class CourseEvalExcelReport:
             pass
 
         pass
-
-
-
 
     def suggestion_sentiments_summary_sheet(self):
 
@@ -347,7 +335,6 @@ class CourseEvalExcelReport:
             row += 1
             pass
 
-
         pass
 
     #saves generated report
@@ -356,9 +343,7 @@ class CourseEvalExcelReport:
         file_name = self.class_course.getSavableReportFileName()
         file_type = '.xlsx'
 
-
-        return report_commons.saveWorkbook(self.work_book, file_name, file_type) 
-
+        return report_commons.saveWorkbook(self.work_book, file_name, file_type)
 
     pass
 
@@ -366,24 +351,6 @@ class CourseEvalExcelReport:
 
 
 
-
-
-
-from io import BytesIO
-from reportlab.platypus import (
-    SimpleDocTemplate,
-    Paragraph,
-    Table,
-    Spacer,
-    PageBreak,
-    Image
-)
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.enums import TA_LEFT
-from reportlab.lib import colors
-
-from pathlib import Path
 
 
 class CourseEvalPdfReport:
@@ -511,19 +478,19 @@ class CourseEvalPdfReport:
 
         registered_students = cc_map['number_of_registered_students']
         evaluated_students = cc_map['number_evaluated_students']
-        
-        response_rate = (evaluated_students/registered_students) * 100 if registered_students > 0 else 0
 
-
+        response_rate = (evaluated_students / registered_students) * 100 if registered_students > 0 else 0
 
         rows = [
-            ('FIELD', 'VALUE'), #this is the table header
+            ('FIELD', 'VALUE'),  #this is the table header
             ("Lecturer", self.class_course.lecturer.getFullName()),
             ("Department", self.class_course.lecturer.department.department_name),
             ("Email", self.class_course.lecturer.user.email),
             ("Course Code", self.class_course.course.course_code),
             ("Course Title", self.class_course.course.title),
             ('Credit Hours:', self.class_course.credit_hours),
+            ('Level', self.class_course.level),
+            ('Programs', len(self.class_course.getListOfProgramsInClas())),
             ('Semester', cc_map['semester']),
             ("Year", cc_map['year']),
             ("Registered Students", registered_students),
@@ -531,7 +498,7 @@ class CourseEvalPdfReport:
             ("Response Rate", f"{response_rate:.2f}%"),
             ("Course Mean Score", cc_map['grand_mean_score']),
             ("Course Percentage Score", cc_map['grand_percentage']),
-            ('Remrk', cc_map['remark'])
+            ('Remark', cc_map['remark'])
         ]
 
         data = [
@@ -555,7 +522,6 @@ class CourseEvalPdfReport:
 
         for detail in eval_details:
             for q in detail["questions"]:
-
                 answers = "<br/>".join(
                     f"{k}: {v}" for k, v in q["answer_summary"].items()
                 )
@@ -668,9 +634,6 @@ class CourseEvalPdfReport:
             ".pdf",
         )
 
-        
-
-
 
 def test():
     from selc_core.models import ClassCourse
@@ -679,9 +642,5 @@ def test():
 
     report = CourseEvalPdfReport(class_course)
 
-    report_file = report.save()
-
-    print('REPORT FILE SAVED: ', report_file.file.url)
+    report.save()
     pass
-
-
