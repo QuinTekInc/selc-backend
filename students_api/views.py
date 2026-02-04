@@ -174,9 +174,9 @@ def submitEvaluationData(request):
 
 
     #when everything has been successful
-    import admin_api.utils
-    admin_api.utils.trigger_admin_dashboard_update()
-    admin_api.utils.trigger_lecturer_dashboard_update(class_course.lecturer)
+    import selc_core.core_utils
+    selc_core.core_utils.trigger_admin_dashboard_update()
+    selc_core.core_utils.trigger_lecturer_dashboard_update(class_course.lecturer)
 
     return Response({'message': 'Your evaluation has been saved.'})
 

@@ -1,6 +1,10 @@
 
 from .models import LecturerRating, EvaluationSuggestion
 
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+from .models import ClassCourse, Lecturer
+
 ANSWER_TYPE_DICT: dict ={
     "performance": ['Excellent', 'Very Good', 'Good', 'Average', 'Bad'],
     "time": ['Always', 'Very Often', 'Sometimes', 'Rarely', 'Never'],
@@ -172,3 +176,41 @@ def create_classes_chart_info(class_courses) -> dict:
     return chart_data
 
 
+
+
+def trigger_admin_dashboard_update():
+
+    class_courses = ClassCourse.getCurrentClassCourses()
+
+    dashboard_data = create_classes_chart_info(class_courses)
+
+    channel_layer = get_channel_layer()
+
+    async_to_sync(channel_layer.group_send)(
+        'admin_dashboard', #channels group name
+        {
+            "type": 'admin_dashboard_event',
+            'data': dashboard_data
+        }
+    )
+
+    pass
+
+
+
+def trigger_lecturer_dashboard_update(lecturer: Lecturer):
+
+    class_courses = ClassCourse.objects.filter(lecturer=lecturer)
+    dashboard_data = create_classes_chart_info(class_courses)
+
+    channel_layer = get_channel_layer()
+
+    async_to_sync(channel_layer.group_send)(
+        f'lecturer_dashboard_{lecturer.user.username}', #channels group name
+        {
+            "type": 'lecturer_dashboard_event',
+            'data': dashboard_data
+        }
+    )
+
+    pass

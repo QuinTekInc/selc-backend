@@ -268,12 +268,12 @@ class BulkExcelReport:
             ws.cell(row=row, column=1, value=lecturer_name)
             ws.cell(row=row, column=2, value=department)
             ws.cell(row=row, column=3, value=level)
-            ws.cell(row=row, column=5, value=course_code)
-            ws.cell(row=row, column=6, value=course_title)
+            ws.cell(row=row, column=4, value=course_code)
+            ws.cell(row=row, column=5, value=course_title)
 
-            ws.cell(row=row, column=7, value=number_of_students)
-            ws.cell(row=row, column=8, value=number_of_evaluated)
-            ws.cell(row=row, column=9, value=response_rate)
+            ws.cell(row=row, column=6, value=number_of_students)
+            ws.cell(row=row, column=7, value=number_of_evaluated)
+            ws.cell(row=row, column=8, value=response_rate)
 
             row += 1
 
@@ -330,14 +330,16 @@ class BulkExcelReport:
         for class_course in self.class_courses:
             lecturer_name = class_course.lecturer.getFullName()
             department = class_course.lecturer.department.department_name
+            level = class_course.level
             course_code = class_course.course.course_code
             course_title = class_course.course.title
             sentiment_summary = class_course.getEvalSuggestions(include_suggestions=False)['sentiment_summary']
 
             ws.cell(row=row, column=1, value=lecturer_name)
             ws.cell(row=row, column=2, value=department)
-            ws.cell(row=row, column=3, value=course_code)
-            ws.cell(row=row, column=4, value=course_title)
+            ws.cell(row=row, column=3, value=level)
+            ws.cell(row=row, column=4, value=course_code)
+            ws.cell(row=row, column=5, value=course_title)
 
             col = 6
 
