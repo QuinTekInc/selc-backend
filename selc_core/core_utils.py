@@ -25,6 +25,7 @@ ANSWER_SCORE_DICT = {
     'always': 5,
     'very often': 4,
     'sometimes': 3,
+    'often': 3,
     'rarely': 2,
     'never': 1,
 

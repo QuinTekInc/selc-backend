@@ -80,6 +80,15 @@ class AdminDashboardGraphConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps(event["data"]))
         pass
 
+    async def department_dashboard_event(self, event):
+
+        event_data = event['data']
+        
+        #add the type to the event_data
+        event_data['type'] = 'department_dashboard'
+
+        await self.send(text_data=json.dumps(event_data))
+
 
     def receive(self, text_data=None, byte_data=None):
         # nothing to receive here.
@@ -89,13 +98,15 @@ class AdminDashboardGraphConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def get_initial_dashboard_data(self):
         from selc_core.models import ClassCourse  # import inside method
-        from selc_core import core_utils
+        from .core_utils import create_classes_chart_info
 
         # Fetch current class courses
         class_courses = ClassCourse.getCurrentClassCourses()
 
         # Create the dashboard chart info
-        return core_utils.create_classes_chart_info(class_courses)
+        return create_classes_chart_info(class_courses)
+
+    pass
 
 
 
@@ -190,9 +201,7 @@ class LecturerDashboardGraphDataConsumer(AsyncWebsocketConsumer):
 
         return create_classes_chart_info(class_courses)
 
-
-
-
+    pass
 
 
 

@@ -391,7 +391,7 @@ def getLecturers(request):
 def getCurrentClassCourses(request):
     general_setting = GeneralSetting.objects.all().first()
 
-    class_courses = ClassCourse.objects.filter(semester=general_setting.current_semester, year=datetime.datetime.now().year)
+    class_courses = ClassCourse.objects.filter(semester=general_setting.current_semester, year=general_setting.academic_year)
 
     class_courses_map_list: list[dict] = [class_course.toMap() for class_course in class_courses]
     
@@ -405,7 +405,7 @@ def getCurrentClassCoursesCategoriesSummary(request):
 
     general_setting = GeneralSetting.objects.all().first()
 
-    class_courses = ClassCourse.objects.filter(semester=general_setting.current_semester, year=datetime.datetime.now().year)
+    class_courses = ClassCourse.objects.filter(semester=general_setting.current_semester, year=general_setting.academic_year)
 
     lecturers_eval_categories_list: list[dict] = []
 
@@ -749,7 +749,18 @@ def getCourses(request):
 
 
 
+@api_view(['GET'])
+def getDepartmentDashboardGraph(request, department_id):
 
+    from selc_core.core_utils import create_classes_chart_info
+
+    department = Department.objects.get(id=department_id)
+    
+    department_courses = department.getClassCourses(is_current=True)
+
+    response_map = create_classes_chart_info(department_courses)
+
+    return Response(response_map)
 
 
 
@@ -870,6 +881,20 @@ def getCourseRatings(request):
 
     return Response(courses_ratings_map)
 
+
+
+
+@api_view(['GET'])
+def getDepartmentGraph(request, department_id):
+
+    from selc_core.core_utils import create_classes_chart_info
+
+    department = Department.objects.get(id=department_id)
+    department_courses = department.getClassCourses(is_current=True)
+    
+    response_map = create_classes_chart_info(department_courses)
+
+    return Response(response_map)
 
 
 

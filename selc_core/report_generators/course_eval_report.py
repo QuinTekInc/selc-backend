@@ -477,7 +477,7 @@ class CourseEvalPdfReport:
         cc_map = self.class_course.toMap()
 
         registered_students = cc_map['number_of_registered_students']
-        evaluated_students = cc_map['number_evaluated_students']
+        evaluated_students = cc_map['number_of_evaluated_students']
 
         response_rate = (evaluated_students / registered_students) * 100 if registered_students > 0 else 0
 
@@ -490,7 +490,7 @@ class CourseEvalPdfReport:
             ("Course Title", self.class_course.course.title),
             ('Credit Hours:', self.class_course.credit_hours),
             ('Level', self.class_course.level),
-            ('Programs', len(self.class_course.getListOfProgramsInClas())),
+            ('Programs', len(self.class_course.getListOfProgramsInClass())),
             ('Semester', cc_map['semester']),
             ("Year", cc_map['year']),
             ("Registered Students", registered_students),

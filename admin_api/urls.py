@@ -36,6 +36,7 @@ urlpatterns = [
     
     path('departments/', views.getDepartments),
     path('get-department-class-courses/<int:department_id>', views.getDepartmentClassCourses),
+    path('get-department-dashboard-graph/<int:department_id>', views.getDepartmentDashboardGraph),
     
     path('lecturers/', views.getLecturers),
     path('lecturer-info/<str:username>', views.getLecturerInformation),

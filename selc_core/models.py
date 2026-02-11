@@ -37,7 +37,7 @@ class GeneralSetting(models.Model):
 
     academic_year = models.IntegerField(default=timezone.now().year)
 
-    semester_end_date = models.DateField(default=timezone.now())
+    semester_end_date = models.DateField(default=timezone.now().date())
 
     enable_evaluations = models.BooleanField(default=False)
 
@@ -72,11 +72,15 @@ class Department(models.Model):
         return f'dept_{self.department_name}_report'
 
     # returns all the classcourses handled the lecturers in the department
-    def getClassCourses(self, as_map=False) -> object:
+    def getClassCourses(self, as_map=False, is_current=False) -> object:
         lecturers = Lecturer.objects.filter(department=self)
 
-        #get the classes based on the lecturers in the department
-        class_courses = ClassCourse.objects.filter(lecturer__in=lecturers)
+        if not is_current:
+            #get the classes based on the lecturers in the department
+            class_courses = ClassCourse.objects.filter(lecturer__in=lecturers)
+        else: 
+            class_courses = ClassCourse.getCurrentClassCourses().filter(lecturer__in=lecturers)
+
 
         if not as_map:
             return class_courses
@@ -86,7 +90,9 @@ class Department(models.Model):
     def toMap(self):
         return {
             'department_id': self.id,
-            'department_name': self.department_name
+            'department_name': self.department_name,
+            'number_of_students': self.students.filter(is_active=True).count(), #because of the related_name param to the Department foreign key in Student model.
+            'number_of_lecturers': self.lecturers.count() #because of the related_name para to the Department foreign key in Lecturer model
         }
 
     pass
@@ -98,11 +104,13 @@ class Student(models.Model):
     reference_number = models.CharField(max_length=50, null=False)
     index_number = models.CharField(max_length=50, default='')
     age = models.IntegerField(default=18, null=False)  #mostly people who come to the university are 18 years and above.
-    department: Department = models.ForeignKey(Department, related_name='std_dept', null=True,
+    department: Department = models.ForeignKey(Department, related_name='students', null=True,
                                                on_delete=models.SET_NULL)
     program = models.CharField(max_length=100)
     campus = models.CharField(max_length=100, default='Sunyani')
     status = models.CharField(max_length=100, default='Regular')
+
+    is_active = models.BooleanField(default=True)
 
     #will have to add level
 
@@ -117,8 +125,6 @@ class Student(models.Model):
         This function returns a list of all the registered courses for a student 
         at the current instance studied in this current semester and academic year.
         """
-
-        general_setting = GeneralSetting.objects.all().first()
 
         class_courses = ClassCourse.getCurrentClassCourses()
 
@@ -156,7 +162,7 @@ class Student(models.Model):
 
 class Lecturer(models.Model):
     user = models.OneToOneField(User, null=False, on_delete=models.CASCADE)
-    department: Department = models.ForeignKey(Department, related_name='department', null=True,
+    department: Department = models.ForeignKey(Department, related_name='lecturers', null=True,
                                                on_delete=models.SET_NULL)
 
     def getFullName(self) -> str:
@@ -817,6 +823,14 @@ class ClassCourse(models.Model):
                 pass
 
             total_evaluations = len(category_question_evaluations)
+
+
+            for evaluation in category_question_evaluations:
+                if evaluation.answer.lower() == 'often':
+                    print(evaluation.answer_id)
+                    print(evaluation.answer)
+                    print(evaluation.question.question)
+
 
             #extract the answers from the list of evaluations and sum them up
             eval_answers_total_score = sum(
