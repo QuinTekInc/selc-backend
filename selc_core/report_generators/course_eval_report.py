@@ -114,7 +114,7 @@ class CourseEvalExcelReport:
         ws.cell(row=current_row_index, column=1, value='Programs')
 
         for row, program in enumerate(programs, start=current_row_index):
-            ws.cell(row=row, column=1, value=program)
+            ws.cell(row=row, column=2, value=program)
             pass
 
         pass
