@@ -975,8 +975,8 @@ class QuestionCategory(models.Model):
 #the questions class
 class Questionnaire(models.Model):
     q_id = models.AutoField(primary_key=True)
-    category: QuestionCategory = models.ForeignKey(QuestionCategory, related_name='questionnaires',
-                                                   on_delete=models.CASCADE)
+    category: QuestionCategory = models.ForeignKey(QuestionCategory, related_name='questionnaires', null=True,
+                                                   on_delete=models.SET_NULL)
     question = models.TextField(default='')
     answer_type = models.CharField(max_length=20, default='yes_no')  #"yes_no", "performance", "time"
 

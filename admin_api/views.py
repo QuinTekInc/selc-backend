@@ -569,18 +569,21 @@ def deleteCategory(request, category_id):
         
         #TODO: Implement a function to replace questions under a deleted categories with a new category.
         #get the questions from the category we want to delete
-        category_questions = Questionnaire.obejcts.filter(category=category)
+        category_questions = Questionnaire.objects.filter(category=category)
 
         for questionnaire in category_questions:
             questionnaire.category = replacement_category
             questionnaire.save()
+            pass  
+
+        category.delete()
+        
+        return Response({'message': f'{category_id} has been deleted'})
 
         pass
 
 
-    category.delete()
-
-    return Response({'message': f'{category_id} has been deleted.'})
+    return Response({'message': f'Could not delete category'}, status=HTTP_400_BAD_REQUEST)
 
 
 
@@ -642,7 +645,6 @@ def updateQuestionnaire(request, question_id: int):
     if new_answer_type == old_answer_type:
         question.save()
         return Response(question.toMap())
-
 
 
     #evaluation questions that corresponds to this questionnaire
