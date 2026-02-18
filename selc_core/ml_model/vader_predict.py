@@ -8,9 +8,13 @@ from nltk.sentiment.vader import SentimentIntensityAnalyzer
 class VaderSentimentAnalyzer:
 
     def __init__(self):
-        #self.download_data()
 
-        nltk.data.path.append("/opt/render/project/src/nltk_data") #used in the product evironment
+        try:
+            self.download_data()
+        except: 
+            pass
+
+        #nltk.data.path.append("/opt/render/project/src/nltk_data") #used in the product evironment
 
         self.intensity_analyzer = SentimentIntensityAnalyzer()
         pass

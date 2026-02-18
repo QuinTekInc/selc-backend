@@ -9,7 +9,6 @@ ANSWER_TYPE_DICT: dict ={
     "performance": ['Excellent', 'Very Good', 'Good', 'Average', 'Bad'],
     "time": ['Always', 'Very Often', 'Sometimes', 'Rarely', 'Never'],
     "yes_no": ['Yes', 'No']
-
 }
 
 
@@ -20,6 +19,7 @@ ANSWER_SCORE_DICT = {
     'good': 3,
     'average': 2,
     'bad': 1,
+    'poor': 1,
 
     #for time
     'always': 5,
@@ -89,12 +89,50 @@ def replaceCategoryForQuestions(old_category, replacement_category):
 
 
 
+def build_lecturer_rating_info(lecturer, lecturer_class_courses):
+
+    number_of_courses = lecturer_class_courses.count()
+
+    ratings = LecturerRating.objects.filter(class_course__in=lecturer_class_courses)
+
+    if ratings.exists():
+        average_rating = sum(rating.rating for rating in ratings) / ratings.count()
+    else:
+        average_rating = 0
+
+
+    return {
+        'lecturer_id': lecturer.id, 
+        'lecturer_name': lecturer.getFullName(),
+        'department': lecturer.department.department_name,
+        'students_count': ratings.count(), 
+        'number_of_courses': number_of_courses,
+        'rating':  average_rating 
+    }
+
+
+
 #returns course rating, suggestion sentiments and response rates
 #for a given set of ClassCourses
 def create_classes_chart_info(class_courses) -> dict:
 
+
+    #TODO: FIND THE COURSE WITH THE HIGHEST EVALUATION SCORE
+    cc_sorted = sorted([cc.toMap() for cc in class_courses], key=lambda cc_map: cc_map['grand_mean_score'], reverse=True)
+    best_class_course_map = cc_sorted[0]
+
+
+    #FIND THE LECTURER WITH THE HIGEST RATING 
+    lecturer_ids = [lecturer_id for lecturer_id in class_courses.values_list('lecturer', flat=True)]
+    lecturers = Lecturer.objects.filter(id__in=lecturer_ids)
+
+    lecturer_ratings = [build_lecturer_rating_info(lecturer, class_courses.filter(lecturer=lecturer)) for lecturer in lecturers]
+    best_lecturer = sorted(lecturer_ratings, key=lambda lr: lr['rating'], reverse=True)[0]
+
+
+
+
     #TODO: CALCULATING THE OVERALL RESPONSE RATE FOR THE GIVEN SET OF CLASS COURSES
-    
     total_registrations_tup = [cc.getNumberOfRegisteredStudents() for cc in class_courses]
 
     total_registrations = sum([std_tup[0] for std_tup in total_registrations_tup]) 
@@ -142,6 +180,9 @@ def create_classes_chart_info(class_courses) -> dict:
     '''
         response format:
         {
+
+            'best_class_course': class_course.toMap(),
+            'highest_lecturer_rating': lecturer_with_height_rating_and_info,
             'registration_summary':{
                 'total_registrations': int,
                 'evaluated_registrations': int,
@@ -168,6 +209,8 @@ def create_classes_chart_info(class_courses) -> dict:
 
 
     chart_data = {
+        'best_class_course': best_class_course_map,
+        'best_lecturer': best_lecturer,
         'registration_summary': reg_map,
         'lecturer_rating': lrating_map,
         'sentiment_summary': sentiments_map
@@ -215,3 +258,16 @@ def trigger_lecturer_dashboard_update(lecturer: Lecturer):
     )
 
     pass
+
+
+
+
+
+def test():
+    graph_data = create_classes_chart_info(ClassCourse.getCurrentClassCourses())
+    return graph_data
+
+
+
+#pull all current active data from their backend.
+#after the initial pull, (pull current level hundred student's data, and all current registrations for all active students)

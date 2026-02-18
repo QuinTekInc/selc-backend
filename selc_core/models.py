@@ -57,6 +57,7 @@ class GeneralSetting(models.Model):
         }
 
 
+#this model will be removed and stored as plain string
 class Department(models.Model):
     id = models.BigAutoField(primary_key=True)
     department_name = models.CharField(max_length=120, unique=True, null=False)
@@ -100,13 +101,21 @@ class Department(models.Model):
 
 #the student's information
 class Student(models.Model):
-    user = models.OneToOneField(User, null=False, on_delete=models.CASCADE)
-    reference_number = models.CharField(max_length=50, null=False)
+
+    #the user attribute will be removed from the model as authentication will now be carried on the school's platform
+    #the reference number will now become primary-key for the student model
+    #the index number will be removed from the students model. 
+    #store the student's full name, and program of study
+    #the level attribute will be removed from this model.
+    #store the attribute which checks whether is currently active or not. (is_active is false when student program shows are DEFERRED, ABANDONED, COMPLETED THEIR STUDIES)
+
+
+    user = models.OneToOneField(User, null=False, on_delete=models.CASCADE) #the reference number will become the primary-key attribute for the student model
+    reference_number = models.CharField(max_length=50, null=False, unique=True) #this will become the primary key
     index_number = models.CharField(max_length=50, default='')
-    age = models.IntegerField(default=18, null=False)  #mostly people who come to the university are 18 years and above.
     department: Department = models.ForeignKey(Department, related_name='students', null=True,
-                                               on_delete=models.SET_NULL)
-    program = models.CharField(max_length=100)
+                                               on_delete=models.SET_NULL) #department attribute will be replaced with just a string
+    program = models.CharField(max_length=100, null=False, default='')
     campus = models.CharField(max_length=100, default='Sunyani')
     status = models.CharField(max_length=100, default='Regular')
 
@@ -161,6 +170,12 @@ class Student(models.Model):
 
 
 class Lecturer(models.Model):
+
+    #A reference to the user model will have to be removed for the lecturer model.
+    #the primary-key field will be UUID the corresponds the lecturer's id in the "organisation" database.
+    #store their full names and email address
+    #store the lecturer's department as a plain string
+
     user = models.OneToOneField(User, null=False, on_delete=models.CASCADE)
     department: Department = models.ForeignKey(Department, related_name='lecturers', null=True,
                                                on_delete=models.SET_NULL)
@@ -270,6 +285,7 @@ class Lecturer(models.Model):
     pass
 
 
+#this model will be removed
 #course information
 class Course(models.Model):
     course_code = models.CharField(primary_key=True, max_length=20, unique=True)
@@ -405,6 +421,15 @@ class SessionChoices(models.TextChoices):
 
 #assigns courses to lecturers for a particular semester and academic year
 class ClassCourse(models.Model):
+
+    #the id or primary-key attribute will be a uuid field.
+    #course_code and course title will be stored as plain string
+    #store the level for the class course or mounted course.
+    #the academic_year attribute will be stored as a string instead of integer.
+    #store the semester as an integer.
+    #the lecturer attribute will be foreign key reference to the lecturer model.
+    #a variable to check if responses are beign taken for the current course.
+
     id = models.AutoField(primary_key=True)
     course: Course = models.ForeignKey(Course, related_name='class_courses', on_delete=models.CASCADE)
     credit_hours = models.IntegerField(default=3)

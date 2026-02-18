@@ -46,6 +46,7 @@ class CourseEvalExcelReport:
         self.category_scores_sheet()
         self.lecturer_rating_summary_sheet()
         self.suggestion_sentiments_summary_sheet()
+        self.suggestions_sheet()
 
         pass
 
@@ -337,6 +338,45 @@ class CourseEvalExcelReport:
 
         pass
 
+
+    def suggestions_sheet(self):
+        ws = self.work_book.create_sheet('Suggestions')
+
+        headers = {
+            'Suggestion',
+            'Rating',
+            'Sentiment'
+        }
+
+        report_commons.init_sheet_title(ws, title='Suggestions', span_column=len(headers))
+
+
+        col_widths = {1: 50, 2: 10, 3: 15}
+        report_commons.set_column_widths(ws, col_widths)
+
+        report_commons.init_header_cells(ws, headers=headers)
+        report_commons.set_row_height(ws, 2, 0.4, in_inches=True)
+
+
+        eval_suggestions = self.class_course.evaluation_suggestions #reversed reference to EvaluationSuggestion model using related_name attr.
+
+
+        row = 3
+
+        for suggestion in eval_suggestions:
+            suggestion_map = suggestion.toMap(include_lecturer_rating=True)
+            suggestion_map_keys = ['suggestion', 'rating', 'sentiment']
+
+            for col_idx, key in enumerate(suggestion_map_keys, start=1):
+                ws.cell(row=row, column=col_idx, value=suggestion_map[key])
+                pass
+
+            row += 1
+
+
+        pass
+
+
     #saves generated report
     #returns a ReportFile database object
     def save(self):
@@ -344,6 +384,7 @@ class CourseEvalExcelReport:
         file_type = '.xlsx'
 
         return report_commons.saveWorkbook(self.work_book, file_name, file_type)
+
 
     pass
 
